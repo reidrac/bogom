@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.7 2005/01/02 17:53:50 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.8 2005/01/02 22:37:33 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -31,7 +31,6 @@
 .Op Fl p Ar pipe
 .Op Fl b Ar bogo_path
 .Op Fl x Ar exclude_string
-.Op Fl w Ar re_whitelist
 .Op Fl c Ar conf_file
 .Sh DESCRIPTION
 The
@@ -70,12 +69,6 @@ Default:
 .It Fl x Ar exclude_string
 If this string is found in the Subject of a message, it will be
 automatically accepted and no filtering operation will be done.
-.It Fl w Ar re_whitelist
-Any message with sender address matching the specified case insensitive
-extended regular expression (explained in
-.Xr re_format 7 )
-will be accepted and no filtering operation will be done. This option can 
-be used more than once and all the regular expressions will be checked.
 .It Fl c Ar conf_file
 Path to the configuration file.
 Default:
@@ -158,8 +151,15 @@ Configuration file supports following tokens:
  default: empty
 .Ed
 .Pp
-Command line options take precedence over configuration file, except for 
-regex whitelists (in which simply the new elements are added).
+Command line options take precedence over configuration file. 
+.Pp
+Any message with sender address matching the case insensitive extended 
+regular expression (explained in
+.Xr re_format 7 )
+specified by
+.Em re_envfrom
+will be accepted and no filtering operation will be done. This token can 
+be used more than once and all the regular expressions will be checked.
 .Sh LOGGING
 .Nm
 sends messages to
@@ -189,6 +189,9 @@ http://www.usebox.net/jjm/bogom/
 The first version of
 .Nm
 was written in the end of 2004.
+.Pp
+.Cm -w
+option has been deprecated and will disappear in next release.
 .Sh AUTHORS
 Juan J. Martinez
 .Aq jjm@usebox.net
