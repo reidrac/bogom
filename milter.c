@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.19 2005/02/01 21:25:49 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.20 2005/02/07 09:30:17 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -32,6 +32,7 @@
 #include <pwd.h>
 #include <syslog.h>
 #include <regex.h>
+#include <time.h>
 
 #include "libmilter/mfapi.h"
 #include "conf.h"
@@ -90,7 +91,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.19 2005/02/01 21:25:49 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.20 2005/02/07 09:30:17 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -875,6 +876,9 @@ main(int argc, char *argv[])
 
 	if(pipe)
 		unlink(pipe);
+
+	/* setup time to timezone */
+	tzset();
 
 	openlog("bogom", LOG_PID | LOG_NDELAY, LOG_DAEMON);
 
