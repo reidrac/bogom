@@ -1,5 +1,5 @@
 #
-# $Id: bogom.conf-example,v 1.1 2005/01/02 17:52:24 reidrac Exp reidrac $
+# $Id: bogom.conf-example,v 1.2 2005/01/02 22:37:46 reidrac Exp reidrac $
 #
 # Example of bogom configuration
 #
@@ -46,8 +46,8 @@
 #
 # exclude_string "<subject exclude string>"
 #
-# exlude_string "[no-bogofilter]"
-# exlude_string "*no filter*"
+# exclude_string "[no-bogofilter]"
+# exclude_string "*no filter*"
 # 
 # default: empty
 
