@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: bogom.conf-example,v 1.1 2005/01/02 17:52:24 reidrac Exp reidrac $
 #
 # Example of bogom configuration
 #
@@ -8,6 +8,15 @@
 # policy (pass|reject|discard)
 #
 # default: policy pass
+
+#
+# reject "<text for the SMTP reply>"
+#
+# reject "We don't accept junk mail"
+# reject "Spam pattern detected"
+#
+# default: empty
+# (sendmail's default is: "Command rejected")
 
 #
 # verbose (0|1)
