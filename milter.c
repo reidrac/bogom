@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: milter.c,v 1.1 2004/12/27 09:28:08 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -70,12 +70,13 @@ struct smfiDesc smfilter=
 	mlfi_close	/* connection cleanup */
 };
 
-static const char 	rcsid[]="$Id$";
+static const char 	rcsid[]="$Id: milter.c,v 1.1 2004/12/27 09:28:08 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
 static int		verbose=0;
 static const char 	*bogo="/usr/local/bin/bogofilter";
+static const char	*exclude=NULL;
 
 sfsistat 
 mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
@@ -114,6 +115,20 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 	{
 		syslog(LOG_ERR, "on mlfi_header: smfi_getpriv");
 		return SMFIS_ACCEPT;
+	}
+
+	if(exclude)
+	{
+		if(!strcasecmp(headerf, "Subject"))
+			if(strstr(headerv, exclude))
+			{
+				if(verbose)
+					syslog(LOG_INFO, 
+						"exclude string found: '%s'", 
+						headerv);
+				mlfi_clean(ctx);
+				return SMFIS_ACCEPT;
+			}
 	}
 
 	if(priv->eom)
@@ -361,8 +376,8 @@ mlfi_clean(SMFICTX *ctx)
 void
 usage(const char *argv0)
 {
-	fprintf(stderr, "usage: %s [-R | -D] [-t] [-v] [-u user] [-p pipe] "
-		"[-b bogo_path ]\n", argv0);
+	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-p pipe]\n"
+		"\t\t[-b bogo_path ] [ -x exclude_string ]\n", argv0);
 
 	return;
 }
@@ -375,7 +390,7 @@ main(int argc, char *argv[])
 	const char *pipe=NULL;
 
 	int opt;
-	const char *opts="hu:p:b:RDtv";
+	const char *opts="hu:p:b:RDtvx:";
 
 	struct passwd *pw=NULL;
 
@@ -413,6 +428,9 @@ main(int argc, char *argv[])
 			case 'v':
 				verbose=1;
 				break;
+			case 'x':
+				exclude=optarg;
+				break;	
 		}
 
 	if(!strncmp(conn, "unix:", 5))
@@ -429,6 +447,10 @@ main(int argc, char *argv[])
 	/* if we're root, drop privileges */
 	if(!getuid())
 	{
+		/* ugly setproctitle to avoid showing exclude string */
+		if(argc>1)
+			argv[1]=NULL;
+
 		pw=getpwnam(user);
 		if(!pw)
 		{
