@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.3 2004/12/29 15:50:55 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.4 2004/12/29 17:34:14 reidrac Exp $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -81,7 +81,7 @@ struct re_list
 		malloc(sizeof(struct re_list));\
 	x->n=NULL;
 
-static const char 	rcsid[]="$Id: milter.c,v 1.3 2004/12/29 15:50:55 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.4 2004/12/29 17:34:14 reidrac Exp $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -421,7 +421,7 @@ main(int argc, char *argv[])
 	const char *user=DEF_USER;
 	const char *conn=DEF_CONN;
 	const char *pipe=NULL;
-	struct re_list *tre;	/* temporal, to speed up things */
+	struct re_list *tre;
 
 	int opt;
 	const char *opts="hu:p:b:RDtvx:w:";
@@ -471,34 +471,34 @@ main(int argc, char *argv[])
 					new_re_list(re);
 					if(!re)
 					{
-               					fprintf(stderr, 
+						fprintf(stderr,
 						"unable to get memory: %s\n", 
 						strerror(errno));
 						return 1;
 					}
-					tre=re;
 				}
 				else
 				{
-					new_re_list(re->n);
-					if(!re->n)
+					new_re_list(tre);
+					if(!tre)
 					{
-               					fprintf(stderr, 
+						fprintf(stderr, 
 						"unable to get memory: %s\n", 
 						strerror(errno));
 						return 1;
 					}
-					tre=re->n;
+					tre->n=re;
+					re=tre;
 				}
 
-				if(regcomp(&(tre->p), optarg, REG_EXTENDED|
+				if(regcomp(&(re->p), optarg, REG_EXTENDED|
 					REG_ICASE|REG_NOSUB))
 				{
 					fprintf(stderr,"Bad pattern: %s\n",
 						optarg);
 					return 1;
 				}
-				tre->pat=optarg;
+				re->pat=optarg;
 				break;	
 		}
 
