@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.2 2004/12/27 22:33:53 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.3 2004/12/29 15:50:55 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <syslog.h>
+#include <regex.h>
 
 #include "libmilter/mfapi.h"
 
@@ -42,6 +43,7 @@ struct mlfiPriv
 };
 
 sfsistat mlfi_connect(SMFICTX *, char *, _SOCK_ADDR *);
+sfsistat mlfi_envfrom(SMFICTX *, char **);
 sfsistat mlfi_header(SMFICTX *, char *, char *);
 sfsistat mlfi_eoh(SMFICTX *);
 sfsistat mlfi_body(SMFICTX *, unsigned char *, size_t);
@@ -57,7 +59,7 @@ struct smfiDesc smfilter=
 	SMFIF_ADDHDRS,	/* flags -- we add headers only */
 	mlfi_connect,	/* connection info filter */
 	NULL,		/* SMTP HELO command filter */
-	NULL,		/* envelope sender filter */
+	mlfi_envfrom,	/* envelope sender filter */
 	NULL,		/* envelope recipient filter */
 	mlfi_header,	/* header filter */
 	mlfi_eoh,	/* end of header */
@@ -67,13 +69,27 @@ struct smfiDesc smfilter=
 	mlfi_close	/* connection cleanup */
 };
 
-static const char 	rcsid[]="$Id: milter.c,v 1.2 2004/12/27 22:33:53 reidrac Exp reidrac $";
+struct re_list
+{
+	regex_t p;
+	const char *pat;
+	struct re_list *n;
+};
+
+#define new_re_list(x) \
+	x=(struct re_list *) \
+		malloc(sizeof(struct re_list));\
+	x->n=NULL;
+
+static const char 	rcsid[]="$Id: milter.c,v 1.3 2004/12/29 15:50:55 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
 static int		verbose=0;
 static const char 	*bogo="/usr/local/bin/bogofilter";
 static const char	*exclude=NULL;
+
+static struct re_list	*re=NULL;
 
 sfsistat 
 mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
@@ -97,6 +113,25 @@ mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 		syslog(LOG_ERR, "on mlfi_connect: smfi_setpriv");
 		return SMFIS_ACCEPT;
 	}
+
+	return SMFIS_CONTINUE;
+}
+
+
+sfsistat 
+mlfi_envfrom(SMFICTX *ctx, char **argv)
+{
+	struct re_list *tre;	/* temporal iterator */
+
+	for(tre=re; tre; tre=tre->n)
+		if(!regexec(&tre->p, argv[0], 0, NULL, 0))
+		{
+			if(verbose)
+				syslog(LOG_INFO, 
+					"accepted due pattern match: %s", 
+						tre->pat);
+			return SMFIS_ACCEPT;
+		}
 
 	return SMFIS_CONTINUE;
 }
@@ -374,7 +409,8 @@ void
 usage(const char *argv0)
 {
 	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-p pipe]\n"
-		"\t\t[-b bogo_path ] [ -x exclude_string ]\n", argv0);
+		"\t\t[-b bogo_path ] [ -x exclude_string ] "
+		"[ -w re_whitelist ]\n", argv0);
 
 	return;
 }
@@ -385,9 +421,10 @@ main(int argc, char *argv[])
 	const char *user=DEF_USER;
 	const char *conn=DEF_CONN;
 	const char *pipe=NULL;
+	struct re_list *tre;	/* temporal, to speed up things */
 
 	int opt;
-	const char *opts="hu:p:b:RDtvx:";
+	const char *opts="hu:p:b:RDtvx:w:";
 
 	struct passwd *pw=NULL;
 
@@ -428,6 +465,41 @@ main(int argc, char *argv[])
 			case 'x':
 				exclude=optarg;
 				break;	
+			case 'w':
+				if(!re)
+				{
+					new_re_list(re);
+					if(!re)
+					{
+               					fprintf(stderr, 
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+					tre=re;
+				}
+				else
+				{
+					new_re_list(re->n);
+					if(!re->n)
+					{
+               					fprintf(stderr, 
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+					tre=re->n;
+				}
+
+				if(regcomp(&(tre->p), optarg, REG_EXTENDED|
+					REG_ICASE|REG_NOSUB))
+				{
+					fprintf(stderr,"Bad pattern: %s\n",
+						optarg);
+					return 1;
+				}
+				tre->pat=optarg;
+				break;	
 		}
 
 	if(!strncmp(conn, "unix:", 5))
@@ -444,7 +516,7 @@ main(int argc, char *argv[])
 	/* if we're root, drop privileges */
 	if(!getuid())
 	{
-		/* ugly setproctitle to avoid showing exclude string */
+		/* ugly (and portable) setproctitle */
 		if(argc>1)
 			argv[1]=NULL;
 
