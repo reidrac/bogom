@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.5 2004/12/31 14:58:58 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.6 2005/01/02 17:53:05 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -83,13 +83,15 @@ struct re_list
 		malloc(sizeof(struct re_list));\
 	x->n=NULL;
 
-static const char 	rcsid[]="$Id: milter.c,v 1.5 2004/12/31 14:58:58 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.6 2005/01/02 17:53:05 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
 static int		verbose=0;
 static const char 	*bogo="/usr/local/bin/bogofilter";
 static const char	*exclude=NULL;
+
+static char		*reject=NULL;
 
 static struct re_list	*re=NULL;
 
@@ -336,6 +338,9 @@ mlfi_eom(SMFICTX *ctx)
 							"spam discarded");
 			}
 
+			if(mode==SMFIS_REJECT && reject)
+				smfi_setreply(ctx, "554", "5.7.1", reject);
+
 			return mode;
 		case 1:
 			smfi_insheader(ctx, 0, "X-Bogosity",
@@ -439,6 +444,7 @@ main(int argc, char *argv[])
  		{ "re_envfrom", REQ_LSTQSTRING, NULL, 0 },
  		{ "bogofilter", REQ_QSTRING, NULL, 0 },
  		{ "policy", REQ_STRING, NULL, 0 },
+ 		{ "reject", REQ_QSTRING, NULL, 0 },
  		{ NULL, NULL, NULL, 0 }
 	};
 
@@ -531,6 +537,9 @@ main(int argc, char *argv[])
  				}
  			}
  		}
+
+ 		if(conf[8].str)
+ 			reject=conf[8].str;
  	}
 
 	while((opt=getopt(argc, argv, opts))!=-1)
