@@ -1,7 +1,7 @@
-.\" $Id: bogom.8,v 1.9 2005/01/04 12:41:08 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.10 2005/01/08 11:59:43 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
-.\" Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
+.\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
 .\"
 .\" This program is free software; you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License Version 2 as
@@ -147,18 +147,26 @@ Configuration file supports following tokens:
  exclude_string "<subject exclude string>"
  default: empty
 
- re_envfrom "<case insensitive extended regular expression>"
+ re_connection "<case insensitive extended re>"
+ default: empty
+
+ re_envfrom "<case insensitive extended re>"
  default: empty
 .Ed
 .Pp
 Configuration takes precedence over command line. 
 .Pp
-Any message with sender address matching the case insensitive extended 
-regular expression (explained in
+The
+.Em re_*
+tokens allow to add items to 
+.Em envfrom 
+and 
+.Em connection 
+white lists. Any message with sender address or client connection 
+(both host and hostname, if available) matching the case insensitive 
+extended regular expression (explained in
 .Xr re_format 7 )
-specified by
-.Em re_envfrom
-will be accepted and no filtering operation will be done. This token can 
+will be accepted and no filtering operation will be done. Those token can 
 be used more than once and all the regular expressions will be checked.
 .Pp
 Quoted strings can use single and double quotes, using backslash to escape both
@@ -192,9 +200,6 @@ http://www.usebox.net/jjm/bogom/
 The first version of
 .Nm
 was written in the end of 2004.
-.Pp
-.Cm -w
-option has been deprecated and will disappear in next release.
 .Sh AUTHORS
 Juan J. Martinez
 .Aq jjm@usebox.net
