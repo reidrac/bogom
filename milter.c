@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.12 2005/01/23 10:07:07 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.13 2005/01/25 22:20:16 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -88,7 +88,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.12 2005/01/23 10:07:07 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.13 2005/01/25 22:20:16 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -744,7 +744,7 @@ main(int argc, char *argv[])
  		}
  	}
 	else
-		return 0; /* error reading configuration */
+		return 1; /* error reading configuration */
 
 	if(!strncmp(conn, "unix:", 5))
 		pipe=conn+5;
