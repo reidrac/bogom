@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.7 2005/01/02 22:37:02 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.8 2005/01/04 12:41:45 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -83,7 +83,7 @@ struct re_list
 		malloc(sizeof(struct re_list));\
 	x->n=NULL;
 
-static const char 	rcsid[]="$Id: milter.c,v 1.7 2005/01/02 22:37:02 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.8 2005/01/04 12:41:45 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -453,6 +453,86 @@ main(int argc, char *argv[])
 
 	struct passwd *pw=NULL;
 
+	while((opt=getopt(argc, argv, opts))!=-1)
+		switch(opt)
+		{
+			case 'h':
+			default:
+				usage(argv[0]);
+				exit(1);
+				break;
+
+			case 'u':
+				user=optarg;
+				break;
+
+			case 'p':
+				conn=optarg;
+				break;	
+
+			case 'b':
+				bogo=optarg;
+				break;	
+
+			case 'R':
+				mode=SMFIS_REJECT;
+				break;
+
+			case 'D':
+				mode=SMFIS_DISCARD;
+				break;
+			case 't':
+				train=1;
+				break;
+			case 'v':
+				verbose=1;
+				break;
+			case 'x':
+				exclude=optarg;
+				break;	
+			case 'w':
+				if(!re)
+				{
+					new_re_list(re);
+					if(!re)
+					{
+						fprintf(stderr,
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+				}
+				else
+				{
+					new_re_list(tre);
+					if(!tre)
+					{
+						fprintf(stderr, 
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+					tre->n=re;
+					re=tre;
+				}
+
+				if(regcomp(&(re->p), optarg, REG_EXTENDED|
+					REG_ICASE|REG_NOSUB))
+				{
+					fprintf(stderr,"Bad pattern: %s\n",
+						optarg);
+					return 1;
+				}
+				re->pat=optarg;
+				fprintf(stderr,
+					"-w option has been deprecated, please"
+					" use re_envfrom instead\n");
+				break;
+			case 'c':
+				conffile=optarg;
+				break;	
+		}
+
  	/* read configuration file */
  	if(!read_conf(conffile, conf))
  	{
@@ -541,86 +621,6 @@ main(int argc, char *argv[])
  		if(conf[8].str)
  			reject=conf[8].str;
  	}
-
-	while((opt=getopt(argc, argv, opts))!=-1)
-		switch(opt)
-		{
-			case 'h':
-			default:
-				usage(argv[0]);
-				exit(1);
-				break;
-
-			case 'u':
-				user=optarg;
-				break;
-
-			case 'p':
-				conn=optarg;
-				break;	
-
-			case 'b':
-				bogo=optarg;
-				break;	
-
-			case 'R':
-				mode=SMFIS_REJECT;
-				break;
-
-			case 'D':
-				mode=SMFIS_DISCARD;
-				break;
-			case 't':
-				train=1;
-				break;
-			case 'v':
-				verbose=1;
-				break;
-			case 'x':
-				exclude=optarg;
-				break;	
-			case 'w':
-				if(!re)
-				{
-					new_re_list(re);
-					if(!re)
-					{
-						fprintf(stderr,
-						"unable to get memory: %s\n", 
-						strerror(errno));
-						return 1;
-					}
-				}
-				else
-				{
-					new_re_list(tre);
-					if(!tre)
-					{
-						fprintf(stderr, 
-						"unable to get memory: %s\n", 
-						strerror(errno));
-						return 1;
-					}
-					tre->n=re;
-					re=tre;
-				}
-
-				if(regcomp(&(re->p), optarg, REG_EXTENDED|
-					REG_ICASE|REG_NOSUB))
-				{
-					fprintf(stderr,"Bad pattern: %s\n",
-						optarg);
-					return 1;
-				}
-				re->pat=optarg;
-				fprintf(stderr,
-					"-w option has been deprecated, please"
-					" use re_envfrom instead\n");
-				break;
-			case 'c':
-				conffile=optarg;
-				break;	
-		}
 
 	if(!strncmp(conn, "unix:", 5))
 		pipe=conn+5;
