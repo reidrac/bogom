@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.22 2005/02/15 21:04:09 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.23 2005/03/30 21:11:25 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -55,6 +55,7 @@ struct mlfiPriv
 {
 	FILE *f;
 	char *filename;
+	char *subject;
 	int eom;
 	size_t bodylen;
 };
@@ -75,7 +76,7 @@ struct smfiDesc smfilter=
 {
 	"bogom",	/* filter name */
 	SMFI_VERSION,	/* version code -- do not change */
-	SMFIF_ADDHDRS,	/* flags -- we add headers only */
+	SMFIF_ADDHDRS | SMFIF_CHGHDRS,	/* flags -- add and modify headers */
 	mlfi_connect,	/* connection info filter */
 	NULL,		/* SMTP HELO command filter */
 	mlfi_envfrom,	/* envelope sender filter */
@@ -101,7 +102,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.22 2005/02/15 21:04:09 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.23 2005/03/30 21:11:25 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -110,6 +111,7 @@ static int		debug=0;
 static size_t		bodylimit=0;
 static const char 	*bogo="/usr/local/bin/bogofilter";
 static const char	*exclude=NULL;
+static const char	*subj_tag=NULL;
 
 static char		*reject=NULL;
 
@@ -183,6 +185,7 @@ mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 	}
 
 	priv->filename=NULL;
+	priv->subject=NULL;
 	priv->f=NULL;
 	priv->eom=1;
 
@@ -250,8 +253,7 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 		return SMFIS_ACCEPT;
 	}
 
-	if(exclude)
-	{
+	if(exclude && headerv)
 		if(!strcasecmp(headerf, "Subject"))
 			if(strstr(headerv, exclude))
 			{
@@ -262,7 +264,6 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 				mlfi_clean(ctx);
 				return SMFIS_ACCEPT;
 			}
-	}
 
 	if(priv->eom)
 	{
@@ -306,6 +307,23 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 
 	if(debug)
 		syslog(LOG_DEBUG, "header %s [%s]", headerf, headerv);
+
+	if(subj_tag && headerv)
+		if(!strcasecmp(headerf, "Subject"))
+		{
+			if(priv->subject)
+				syslog(LOG_INFO,
+					"Subject header not unique");
+			else
+			{
+				priv->subject=strdup(headerv);
+				if(!priv->subject)
+					syslog(LOG_ERR,
+						"Unable to get memory (subject"
+						" tag): %s",
+						strerror(errno));
+			}
+		}
 
 	if(fprintf(priv->f, "%s: %s\n", headerf, headerv)==EOF)
 	{
@@ -406,6 +424,7 @@ mlfi_eom(SMFICTX *ctx)
 	struct mlfiPriv *priv;
 	int status, pid;
 	char bogo_ops[5]="-\0";
+	char *tmp_subj;
 
 	if(debug)
 		syslog(LOG_DEBUG, "...end of message");
@@ -449,11 +468,10 @@ mlfi_eom(SMFICTX *ctx)
 
 	waitpid(pid, &status, 0);
 
-	mlfi_clean(ctx);
-
 	if(!WIFEXITED(status))
 	{
 		syslog(LOG_ERR, "bogofilter didn't exit normally");
+		mlfi_clean(ctx);
 		return SMFIS_CONTINUE;
 	}
 
@@ -462,10 +480,38 @@ mlfi_eom(SMFICTX *ctx)
 		case 3:
 		case -1:
 			syslog(LOG_ERR, "bogofilter reply: I/O error"); 
+			mlfi_clean(ctx);
 			return SMFIS_CONTINUE;
 		case 0:
 			smfi_insheader(ctx, 0, "X-Bogosity",
 				"Yes, tests=bogofilter");
+
+			if(subj_tag && priv->subject)
+			{
+				tmp_subj=(char *)calloc(sizeof(subj_tag)+
+					sizeof(priv->subject)+2, sizeof(char));
+
+				if(!tmp_subj)
+					syslog(LOG_ERR, "Unable to get memory:"
+						" %s", strerror(errno));
+				else
+				{
+					sprintf(tmp_subj, "%s %s", subj_tag,
+						priv->subject);
+
+					/* truncate if needed and be nice 
+						with RFC */
+					if(strlen(tmp_subj)>998)
+						tmp_subj[998]=0;
+
+					if(smfi_chgheader(ctx, "Subject", 1,
+						tmp_subj)==MI_SUCCESS && debug)
+						syslog(LOG_DEBUG, "subject_tag"
+							" added: '%s'", 
+								tmp_subj);
+					free(tmp_subj);
+				}
+			}
 
 			if(verbose)
 			{
@@ -484,6 +530,7 @@ mlfi_eom(SMFICTX *ctx)
 			if(mode==SMFIS_REJECT && reject)
 				smfi_setreply(ctx, "554", "5.7.1", reject);
 
+			mlfi_clean(ctx);
 			return mode;
 		case 1:
 			smfi_insheader(ctx, 0, "X-Bogosity",
@@ -503,6 +550,7 @@ mlfi_eom(SMFICTX *ctx)
 			break;
 	}
 
+	mlfi_clean(ctx);
 	return SMFIS_CONTINUE;
 }
 
@@ -568,6 +616,12 @@ mlfi_clean(SMFICTX *ctx)
 		priv->filename=NULL;
 	}
 
+	if(priv->subject)
+	{
+		free(priv->subject);
+		priv->subject=NULL;
+	}
+
 	priv->eom=1;
 
 	if(debug)
@@ -618,6 +672,7 @@ main(int argc, char *argv[])
  		{ "re_envrcpt", REQ_LSTQSTRING, NULL, 0, NULL },
  		{ "body_limit", REQ_STRING, NULL, 0, NULL },
  		{ "pidfile", REQ_QSTRING, NULL, 0, NULL },
+ 		{ "subject_tag", REQ_QSTRING, NULL, 0, NULL },
  		{ NULL, 0, NULL, 0, NULL }
 	};
 
@@ -886,6 +941,9 @@ main(int argc, char *argv[])
 
  		if(conf[12].str)
  			pidfile=conf[12].str;
+
+ 		if(conf[13].str)
+ 			subj_tag=conf[13].str;
  	}
 	else
 		return 1; /* error reading configuration */
