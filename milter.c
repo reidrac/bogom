@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.4 2004/12/29 17:34:14 reidrac Exp $ */
+/* $Id: milter.c,v 1.5 2004/12/31 14:58:58 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -31,9 +31,11 @@
 #include <regex.h>
 
 #include "libmilter/mfapi.h"
+#include "conf.h"
 
 #define DEF_USER	"bogofilter"
 #define DEF_CONN	"unix:/var/spool/bogofilter/milter.sock"
+#define DEF_CONF	"/etc/bogom.conf"
 
 struct mlfiPriv
 {
@@ -81,7 +83,7 @@ struct re_list
 		malloc(sizeof(struct re_list));\
 	x->n=NULL;
 
-static const char 	rcsid[]="$Id: milter.c,v 1.4 2004/12/29 17:34:14 reidrac Exp $";
+static const char 	rcsid[]="$Id: milter.c,v 1.5 2004/12/31 14:58:58 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -410,7 +412,7 @@ usage(const char *argv0)
 {
 	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-p pipe]\n"
 		"\t\t[-b bogo_path ] [ -x exclude_string ] "
-		"[ -w re_whitelist ]\n", argv0);
+ 		"[ -w re_whitelist ]\n\t\t[ -c conf_file ]\n", argv0);
 
 	return;
 }
@@ -421,12 +423,115 @@ main(int argc, char *argv[])
 	const char *user=DEF_USER;
 	const char *conn=DEF_CONN;
 	const char *pipe=NULL;
+	const char *conffile=DEF_CONF;
+
 	struct re_list *tre;
+ 	struct string_list *tsl, *tsl2;
+
+ 	/* configuration tokens */
+ 	struct conftoken conf[]=
+ 	{
+ 		{ "verbose", REQ_BOOL, NULL, -1 },
+ 		{ "training", REQ_BOOL, NULL, -1 },
+ 		{ "user", REQ_QSTRING, NULL, 0 },
+ 		{ "connection", REQ_QSTRING, NULL, 0 },
+ 		{ "exclude_string", REQ_QSTRING, NULL, 0 },
+ 		{ "re_envfrom", REQ_LSTQSTRING, NULL, 0 },
+ 		{ "bogofilter", REQ_QSTRING, NULL, 0 },
+ 		{ "policy", REQ_STRING, NULL, 0 },
+ 		{ NULL, NULL, NULL, 0 }
+	};
 
 	int opt;
-	const char *opts="hu:p:b:RDtvx:w:";
+	const char *opts="hu:p:b:RDtvx:w:c:";
 
 	struct passwd *pw=NULL;
+
+ 	/* read configuration file */
+ 	if(!read_conf(conffile, conf))
+ 	{
+ 		if(conf[0].bool!=-1)
+ 			verbose=conf[0].bool;
+ 
+ 		if(conf[1].bool!=-1)
+ 			train=conf[1].bool;
+ 
+ 		if(conf[2].str)
+ 			user=conf[2].str;
+ 
+ 		if(conf[3].str)
+ 			conn=conf[3].str;
+ 
+ 		if(conf[4].str)
+ 			exclude=conf[4].str;
+ 
+ 		if(conf[5].sl)
+ 		{
+ 			for(tsl=conf[5].sl; tsl; tsl=tsl->n, free(tsl2))
+ 			{
+				if(!re)
+				{
+					new_re_list(re);
+					if(!re)
+					{
+						fprintf(stderr,
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+				}
+				else
+				{
+					new_re_list(tre);
+					if(!tre)
+					{
+						fprintf(stderr, 
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+					tre->n=re;
+					re=tre;
+				}
+ 
+ 				if(regcomp(&(re->p), tsl->s, REG_EXTENDED|
+ 					REG_ICASE|REG_NOSUB))
+ 				{
+ 					fprintf(stderr,"Bad pattern: %s\n",
+ 						tsl->s);
+ 					return 1;
+ 				}
+ 				re->pat=tsl->s;
+ 				tsl2=tsl;
+ 			}
+ 			conf[5].sl=NULL;
+ 		}
+ 
+ 		if(conf[6].str)
+ 			bogo=conf[6].str;
+ 
+ 		if(conf[7].str)
+ 		{
+ 			if(!strcmp(conf[7].str, "pass"))
+ 				mode=SMFIS_CONTINUE;
+ 			else
+ 			{
+ 				if(!strcmp(conf[7].str, "reject"))
+ 					mode=SMFIS_REJECT;
+ 				else
+ 				{
+ 					if(!strcmp(conf[7].str, "discard"))
+ 						mode=SMFIS_DISCARD;
+ 					else
+ 					{
+ 						fprintf(stderr, "conf error:"
+ 							" unknown policy\n");
+ 						return 1;
+ 					}
+ 				}
+ 			}
+ 		}
+ 	}
 
 	while((opt=getopt(argc, argv, opts))!=-1)
 		switch(opt)
@@ -499,6 +604,9 @@ main(int argc, char *argv[])
 					return 1;
 				}
 				re->pat=optarg;
+				break;
+			case 'c':
+				conffile=optarg;
 				break;	
 		}
 
