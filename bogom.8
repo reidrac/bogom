@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.12 2005/01/25 22:19:58 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.13 2005/01/27 22:34:43 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -33,6 +33,7 @@
 .Op Fl x Ar exclude_string
 .Op Fl c Ar conf_file
 .Op Fl l Ar body_limit
+.Op Fl d
 .Sh DESCRIPTION
 The
 .Nm
@@ -79,6 +80,8 @@ Length limit in bytes to be processed from mail body. The rest of the body
 will be discarded and not analyzed by the filter.
 Default:
 .Pa no limit
+.It Fl d
+Enable debug messages (implies verbose logging)
 .El
 .Pp
 Default policy is to add the
@@ -109,20 +112,20 @@ registers the mail after classifying it as spam or ham.
 This option can be dangerous because the filter may register errors, so
 you should read carefully bogofilter's manual regarding this point.
 .Sh SENDMAIL SETUP
-You must verify you have milter support in your sendmail binary:
+Milter support in sendmail binary can be verified with:
 .Pp
 .D1 # sendmail -d0.1 -bv root | grep MILTER
 .D1 Compiled with: DNSMAP LOG MAP_REGEX MATCHGECOS MILTER MIME7TO8 MIME8TO7
 .Pp
-Put the milter in your sendmail configuration by adding the following lines to
-your mc file:
+The milter can be added to sendmail's configuration by adding the following 
+lines to the mc file:
 .Pp
 .D1 INPUT_MAIL_FILTER(`bogom',
 .D1 `S=unix:/var/spool/bogofilter/milter.sock, T=S:30s;R:1m')
 .Pp
 It assumes the default place for the communication socket.
 .Pp
-Rebuild your cf and install it. Send HUP signal to sendmail and you're done.
+The cf file must be rebuilt and sendmail restarted.
 .Sh CONFIGURATION FILE
 Configuration file supports following tokens:
 .Bd -literal
@@ -192,12 +195,25 @@ using
 facility
 daemon and
 levels
-err, notice and info.
+err, notice, info and debug.
 .Pp
 By default only info and, when needed, err levels will be used. With
 .Cm -v
 option, extra information will be addressed with notice level plus the
 log facility provided in bofogilter.
+.Pp
+.Cm -d
+option enables debug level with very verbose logging.
+.Pp
+.Nm
+activity can be logged to a separate file with following lines
+.Xr syslog.conf 5 :
+.Bd -literal
+!bogom
+*.*				/var/log/bogom
+!bogofilter
+*.*				/var/log/bogom
+.Ed
 .Sh FILES
 /etc/bogom.conf
 .Sh SEE ALSO
