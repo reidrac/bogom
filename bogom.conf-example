@@ -1,5 +1,5 @@
 #
-# $Id: bogom.conf-example,v 1.5 2005/01/25 22:19:45 reidrac Exp reidrac $
+# $Id: bogom.conf-example,v 1.6 2005/01/27 22:34:52 reidrac Exp reidrac $
 #
 # Example of bogom configuration
 #
@@ -51,6 +51,11 @@
 # connection "<type>:<location>"
 #
 # default: connection "unix:/var/spool/bogofilter/milter.sock"
+
+#
+# pidfile "<path to milter pidfile>"
+#
+# default: pidfile "/var/spool/bogofilter/bogom.pid"
 
 #
 # exclude_string "<subject exclude string>"
