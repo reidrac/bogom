@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.13 2005/01/25 22:20:16 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.14 2005/01/26 10:01:41 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -54,6 +54,7 @@ sfsistat mlfi_header(SMFICTX *, char *, char *);
 sfsistat mlfi_eoh(SMFICTX *);
 sfsistat mlfi_body(SMFICTX *, unsigned char *, size_t);
 sfsistat mlfi_eom(SMFICTX *);
+sfsistat mlfi_abort(SMFICTX *);
 sfsistat mlfi_close(SMFICTX *);
 void mlfi_clean(SMFICTX *);
 void usage(const char *);
@@ -71,7 +72,7 @@ struct smfiDesc smfilter=
 	mlfi_eoh,	/* end of header */
 	mlfi_body,	/* body block filter */
 	mlfi_eom,	/* end of message */
-	NULL,		/* message aborted */
+	mlfi_abort,	/* message aborted */
 	mlfi_close	/* connection cleanup */
 };
 
@@ -88,7 +89,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.13 2005/01/25 22:20:16 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.14 2005/01/26 10:01:41 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -432,6 +433,14 @@ mlfi_eom(SMFICTX *ctx)
 			syslog(LOG_ERR, "bogofilter reply is unknown");
 			break;
 	}
+
+	return SMFIS_CONTINUE;
+}
+
+sfsistat 
+mlfi_abort(SMFICTX *ctx)
+{
+	mlfi_clean(ctx);
 
 	return SMFIS_CONTINUE;
 }
