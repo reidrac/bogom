@@ -1,4 +1,4 @@
-/* $Id: conf.c,v 1.2 2005/01/08 12:02:40 reidrac Exp reidrac $ */
+/* $Id: conf.c,v 1.3 2005/01/09 14:28:01 reidrac Exp reidrac $ */
 
 /*
 * conf.c, configuration reader and parser
@@ -29,10 +29,11 @@
 
 #define is_blank(x) (x==' ' || x=='\t' || x=='\n')
 
-#define new_string_list(x) \
-	x=(struct string_list *) \
-		malloc(sizeof(struct string_list));\
-	x->n=NULL;
+#define new_string_list(x) do {\
+		x=(struct string_list *) \
+			malloc(sizeof(struct string_list));\
+		x->n=NULL;\
+	} while(0)
 
 static char * pstrncpy(char *, const char *, size_t);
 static int parse_string(char *p);
@@ -40,8 +41,11 @@ static int parse_qstring(char *p);
 static int parse_bool(char *p);
 static char * parse_conf(struct conftoken *conf, char *p);
 
-static const char rcsid[]="$Id$";
+static const char rcsid[]="$Id: conf.c,v 1.3 2005/01/09 14:28:01 reidrac Exp reidrac $";
 
+/*
+* strncpy alike function that parses scaped quotes
+*/
 static char *
 pstrncpy(char *d, const char *s, size_t l)
 {
@@ -60,6 +64,9 @@ pstrncpy(char *d, const char *s, size_t l)
 	return d;
 }
 
+/*
+* parses a string and returns its length
+*/
 static int
 parse_string(char *p)
 {
@@ -70,6 +77,12 @@ parse_string(char *p)
 	return (int)(t-p);
 }
 
+/*
+* parses a quoted string and returns its length
+* on error:
+*	-1	close quote expected
+*	0	empty quotes
+*/
 static int
 parse_qstring(char *p)
 {
@@ -94,6 +107,10 @@ parse_qstring(char *p)
 	return (int)(t-p);
 }
 
+/*
+* parses a bool and returns 0/1
+* all values ne 0 are true
+*/
 static int
 parse_bool(char *p)
 {
@@ -106,6 +123,9 @@ parse_bool(char *p)
 		return 1;
 }
 
+/*
+* parses one line each call
+*/
 static char *
 parse_conf(struct conftoken *conf, char *p)
 {
@@ -290,6 +310,9 @@ parse_conf(struct conftoken *conf, char *p)
 	return p;
 }
 
+/*
+* reads and parses the configuration file
+*/
 int
 read_conf(const char *filename, struct conftoken *conf)
 {
