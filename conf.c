@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: conf.c,v 1.1 2005/01/02 17:52:38 reidrac Exp reidrac $ */
 
 /*
 * conf.c, configuration reader and parser
@@ -34,10 +34,29 @@
 		malloc(sizeof(struct string_list));\
 	x->n=NULL;
 
+static char * pstrncpy(char *, const char *, size_t);
 static int parse_string(char *p);
 static int parse_qstring(char *p);
 static int parse_bool(char *p);
 static char * parse_conf(struct conftoken *conf, char *p);
+
+static char *
+pstrncpy(char *d, const char *s, size_t l)
+{
+	int i, j;
+
+	for(i=0, j=0; i<l && s[i]; i++, j++)
+	{
+		if(s[i]=='\\' && i+1<l)
+			if(s[i+1]=='\'' || s[i+1]=='\"')
+				i++;
+		d[j]=s[i];
+	}
+
+	d[j]=0;
+
+	return d;
+}
 
 static int
 parse_string(char *p)
@@ -53,17 +72,18 @@ static int
 parse_qstring(char *p)
 {
 	char *t;
+	char q=*p;
 
-	for(t=p; *t; t++)
+	for(t=++p; *t; t++)
 	{
-		if(*t=='\"')
+		if(*t==q)
 			break;
 
-		if(*t=='\\' && t[1]=='\"')
+		if(*t=='\\' && t[1]==q)
 			t++;
 	}
 
-	if(*t!='\"')
+	if(*t!=q)
 		return -1;
 
 	if(t==p)
@@ -151,7 +171,7 @@ parse_conf(struct conftoken *conf, char *p)
 					break;
 
 				case REQ_QSTRING:
-					if(*p!='\"')
+					if(*p!='\"' && *p!='\'')
 					{
 						fprintf(stderr,
 							"quoted string"
@@ -159,8 +179,8 @@ parse_conf(struct conftoken *conf, char *p)
 						return p;
 					}
 
-					p++;
 					len=parse_qstring(p);
+					p++;
 
 					if(len==-1)
 					{
@@ -184,12 +204,12 @@ parse_conf(struct conftoken *conf, char *p)
 						fprintf(stderr, "malloc\n");
 						return p;
 					}
-					strncpy(conf[i].str, p, len);
+					pstrncpy(conf[i].str, p, len);
 					p+=len+1;
 					break;
 
 				case REQ_LSTQSTRING:
-					if(*p!='\"')
+					if(*p!='\"' && *p!='\'')
 					{
 						fprintf(stderr,
 							"quoted string"
@@ -197,8 +217,8 @@ parse_conf(struct conftoken *conf, char *p)
 						return p;
 					}
 
-					p++;
 					len=parse_qstring(p);
+					p++;
 
 					if(len==-1)
 					{
@@ -243,7 +263,7 @@ parse_conf(struct conftoken *conf, char *p)
 						fprintf(stderr, "malloc\n");
 						return p;
 					}
-					strncpy(conf[i].sl->s, p, len);
+					pstrncpy(conf[i].sl->s, p, len);
 					p+=len+1;
 					break;
 			}
