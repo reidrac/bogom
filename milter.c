@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.20 2005/02/07 09:30:17 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.21 2005/02/08 23:13:46 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -38,8 +38,17 @@
 #include "conf.h"
 
 #define DEF_USER	"bogofilter"
+
+/* defaults */
+#ifndef DEF_CONN
 #define DEF_CONN	"unix:/var/spool/bogofilter/milter.sock"
+#endif
+#ifndef DEF_CONF
 #define DEF_CONF	"/etc/bogom.conf"
+#endif
+#ifndef DEF_PIDFILE
+#define DEF_PIDFILE	"/var/spool/bogofilter/bogom.pid"
+#endif
 
 struct mlfiPriv
 {
@@ -91,7 +100,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.20 2005/02/07 09:30:17 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.21 2005/02/08 23:13:46 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -569,9 +578,10 @@ mlfi_clean(SMFICTX *ctx)
 void
 usage(const char *argv0)
 {
-	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-p pipe]\n"
+	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-s conn]\n"
 		"\t\t[-b bogo_path ] [ -x exclude_string ] "
- 		"[ -c conf_file ]\n\t\t[ -l body_limit ] [ -d ]\n", argv0);
+ 		"[ -c conf_file ]\n\t\t[ -l body_limit ] [ -p pidfile ] "
+		"[ -d ]\n", argv0);
 
 	return;
 }
@@ -583,6 +593,10 @@ main(int argc, char *argv[])
 	const char *conn=DEF_CONN;
 	const char *pipe=NULL;
 	const char *conffile=DEF_CONF;
+	const char *pidfile=DEF_PIDFILE;
+
+	FILE *pidfile_fd;
+	int result;
 
 	struct re_list *tre;
  	struct string_list *tsl, *tsl2;
@@ -602,11 +616,12 @@ main(int argc, char *argv[])
  		{ "re_connection", REQ_LSTQSTRING, NULL, 0, NULL },
  		{ "re_envrcpt", REQ_LSTQSTRING, NULL, 0, NULL },
  		{ "body_limit", REQ_STRING, NULL, 0, NULL },
+ 		{ "pidfile", REQ_QSTRING, NULL, 0, NULL },
  		{ NULL, 0, NULL, 0, NULL }
 	};
 
 	int opt;
-	const char *opts="hu:p:b:RDtvx:w:c:l:d";
+	const char *opts="hu:p:b:RDtvx:w:c:l:ds:";
 
 	struct passwd *pw=NULL;
 
@@ -623,7 +638,7 @@ main(int argc, char *argv[])
 				user=optarg;
 				break;
 
-			case 'p':
+			case 's':
 				conn=optarg;
 				break;	
 
@@ -662,6 +677,10 @@ main(int argc, char *argv[])
 			case 'd':
 				debug=1;
 				verbose=1;
+				break;
+
+			case 'p':
+				pidfile=optarg;
 				break;
 		}
 
@@ -864,9 +883,18 @@ main(int argc, char *argv[])
 			}
  		}
 
+ 		if(conf[12].str)
+ 			pidfile=conf[12].str;
  	}
 	else
 		return 1; /* error reading configuration */
+
+	if(access(pidfile, F_OK)!=-1)
+	{
+		fprintf(stderr, "pidfile '%s' exists, delete it if"
+			" the milter is not already running\n", pidfile);
+		return 1;
+	}
 
 	if(!strncmp(conn, "unix:", 5))
 		pipe=conn+5;
@@ -876,11 +904,6 @@ main(int argc, char *argv[])
 
 	if(pipe)
 		unlink(pipe);
-
-	/* setup time to timezone */
-	tzset();
-
-	openlog("bogom", LOG_PID | LOG_NDELAY, LOG_DAEMON);
 
 	/* if we're root, drop privileges */
 	if(!getuid())
@@ -908,27 +931,54 @@ main(int argc, char *argv[])
 		}
 	}
 
+	if(daemon(0, 0))
+	{
+		fprintf(stderr, "daemon failed: %s\n", strerror(errno));
+		unlink(pidfile);
+		return 1;
+	}
+
+	/* setup time to timezone */
+	tzset();
+
+	openlog("bogom", LOG_PID | LOG_NDELAY, LOG_DAEMON);
+
+	pidfile_fd=fopen(pidfile, "w");
+	if(!pidfile_fd)
+	{
+		syslog(LOG_ERR, "unable to open pidfile '%s': %s\n",
+			pidfile, strerror(errno));
+		return 1;
+	}
+
+	if(fprintf(pidfile_fd, "%li\n", (long)getpid())<=0 || 
+		fclose(pidfile_fd)!=0)
+	{
+		syslog(LOG_ERR, "unable to write into pidfile '%s': %s\n", 
+			pidfile, strerror(errno));
+		unlink(pidfile);
+		return 1;
+	}
+
 	if(smfi_setconn((char *)conn)==MI_FAILURE)
 	{
-		fprintf(stderr,"smfi_setconn %s failed\n", conn);
+		syslog(LOG_ERR, "smfi_setconn %s failed\n", conn);
 		return 1;
 	}
 
 	if(smfi_register(smfilter)!=MI_SUCCESS)
 	{
-                fprintf(stderr, "smfi_register failed\n");
+                syslog(LOG_ERR, "smfi_register failed\n");
 		return 1;
         }
 
-	if(daemon(0, 0))
-	{
-               	fprintf(stderr, "daemon failed: %s\n", strerror(errno));
-		return 1;
-	}
-
 	syslog(LOG_INFO, "started %s", rcsid);
 
-	return smfi_main();
+	result=smfi_main();
+
+	unlink(pidfile);
+
+	return result;
 }
 
 /* EOF */
