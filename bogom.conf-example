@@ -1,5 +1,5 @@
 #
-# $Id: bogom.conf-example,v 1.4 2005/01/22 12:38:29 reidrac Exp reidrac $
+# $Id: bogom.conf-example,v 1.5 2005/01/25 22:19:45 reidrac Exp reidrac $
 #
 # Example of bogom configuration
 #
@@ -32,6 +32,15 @@
 # training (0|1)
 #
 # default: training 0
+
+#
+# body_limit <length in bytes>
+#
+# body_limit 16000 
+# body_limit 64k
+# body_limit 1m
+#
+# default: no limit
 
 #
 # user "<username to run the milter>"
