@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.8 2005/01/04 12:41:45 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.9 2005/01/08 12:02:31 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -78,12 +78,13 @@ struct re_list
 	struct re_list *n;
 };
 
-#define new_re_list(x) \
-	x=(struct re_list *) \
-		malloc(sizeof(struct re_list));\
-	x->n=NULL;
+#define new_re_list(x) do {\
+		x=(struct re_list *) \
+			malloc(sizeof(struct re_list));\
+		x->n=NULL;\
+	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.8 2005/01/04 12:41:45 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.9 2005/01/08 12:02:31 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
