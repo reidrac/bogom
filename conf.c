@@ -1,8 +1,8 @@
-/* $Id: conf.c,v 1.3 2005/01/09 14:28:01 reidrac Exp reidrac $ */
+/* $Id: conf.c,v 1.4 2005/01/10 11:38:36 reidrac Exp reidrac $ */
 
 /*
 * conf.c, configuration reader and parser
-* Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
+* Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License Version 2 as
@@ -41,7 +41,7 @@ static int parse_qstring(char *p);
 static int parse_bool(char *p);
 static char * parse_conf(struct conftoken *conf, char *p);
 
-static const char rcsid[]="$Id: conf.c,v 1.3 2005/01/09 14:28:01 reidrac Exp reidrac $";
+static const char rcsid[]="$Id: conf.c,v 1.4 2005/01/10 11:38:36 reidrac Exp reidrac $";
 
 /*
 * strncpy alike function that parses scaped quotes
