@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.15 2005/01/26 13:14:40 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.16 2005/01/27 22:26:38 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -90,11 +90,12 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.15 2005/01/26 13:14:40 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.16 2005/01/27 22:26:38 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
 static int		verbose=0;
+static int		debug=0;
 static size_t		bodylimit=0;
 static const char 	*bogo="/usr/local/bin/bogofilter";
 static const char	*exclude=NULL;
@@ -137,6 +138,9 @@ mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 		strcpy(host, "*");
 	}
 
+	if(debug)
+		syslog(LOG_DEBUG, "connection from %s [ %s ]", hostname, host);
+	
 	for(tre=re_c; tre; tre=tre->n)
 	{
 		if(!regexec(&tre->p, hostname, 0, NULL, 0))
@@ -185,6 +189,9 @@ mlfi_envfrom(SMFICTX *ctx, char **argv)
 {
 	struct re_list *tre;	/* temporal iterator */
 
+	if(debug)
+		syslog(LOG_DEBUG, "envfrom %s", argv[0]);
+
 	for(tre=re_f; tre; tre=tre->n)
 		if(!regexec(&tre->p, argv[0], 0, NULL, 0))
 		{
@@ -202,6 +209,9 @@ sfsistat
 mlfi_envrcpt(SMFICTX *ctx, char **argv)
 {
 	struct re_list *tre;	/* temporal iterator */
+
+	if(debug)
+		syslog(LOG_DEBUG, "envrcpt %s", argv[0]);
 
 	for(tre=re_r; tre; tre=tre->n)
 		if(!regexec(&tre->p, argv[0], 0, NULL, 0))
@@ -278,7 +288,13 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 
 		priv->eom=0;
 		priv->bodylen=0;
+
+		if(debug)
+			syslog(LOG_DEBUG, "message begin...");
 	}
+
+	if(debug)
+		syslog(LOG_DEBUG, "header %s [%s]", headerf, headerv);
 
 	if(fprintf(priv->f, "%s: %s\n", headerf, headerv)==EOF)
 	{
@@ -295,6 +311,9 @@ sfsistat
 mlfi_eoh(SMFICTX *ctx)
 {
 	struct mlfiPriv *priv;
+
+	if(debug)
+		syslog(LOG_DEBUG, "headers ok");
 
 	priv=(struct mlfiPriv *)smfi_getpriv(ctx);
 	if(!priv)
@@ -329,10 +348,23 @@ mlfi_body(SMFICTX *ctx, unsigned char *bodyp, size_t bodylen)
 	if(bodylimit)
 	{
 		if(bodylimit==priv->bodylen)
+		{
+			if(debug)
+				syslog(LOG_DEBUG, "body_limit reached, "
+						" %d bytes discarded", bodylen);
+
 			bodylen=0;
+		}
 		else
 			if(priv->bodylen+bodylen>bodylimit)
+			{
+				if(debug)
+					syslog(LOG_DEBUG, "body_limit reached, "
+						" %d bytes discarded",
+					bodylen-(bodylimit-priv->bodylen));
+
 				bodylen=bodylimit-priv->bodylen;
+			}
 	}
 
 	if(bodylen>0)
@@ -345,7 +377,13 @@ mlfi_body(SMFICTX *ctx, unsigned char *bodyp, size_t bodylen)
 			return SMFIS_TEMPFAIL;
 		}
 		else
+		{
+			if(debug)
+				syslog(LOG_DEBUG, "%d body bytes written", 
+						bodylen);
+
 			priv->bodylen+=bodylen;
+		}
 	}
 
 	return SMFIS_CONTINUE;
@@ -357,6 +395,9 @@ mlfi_eom(SMFICTX *ctx)
 	struct mlfiPriv *priv;
 	int status, pid;
 	char bogo_ops[5]="-\0";
+
+	if(debug)
+		syslog(LOG_DEBUG, "...end of message");
 
 	priv=(struct mlfiPriv *)smfi_getpriv(ctx);
 	if(!priv)
@@ -457,6 +498,9 @@ mlfi_eom(SMFICTX *ctx)
 sfsistat 
 mlfi_abort(SMFICTX *ctx)
 {
+	if(debug)
+		syslog(LOG_DEBUG, "message ABORTED");
+
 	mlfi_clean(ctx);
 
 	return SMFIS_CONTINUE;
@@ -477,6 +521,9 @@ mlfi_close(SMFICTX *ctx)
 	smfi_setpriv(ctx, NULL);
 	free(priv);
 
+	if(debug)
+		syslog(LOG_DEBUG, "connection closed");
+
 	return SMFIS_CONTINUE;
 }
 
@@ -485,6 +532,9 @@ mlfi_clean(SMFICTX *ctx)
 {
 	struct mlfiPriv *priv;
 
+	if(debug)
+		syslog(LOG_DEBUG, "cleanning message...");
+
 	priv=(struct mlfiPriv *)smfi_getpriv(ctx);
 
 	if(!priv)
@@ -492,18 +542,25 @@ mlfi_clean(SMFICTX *ctx)
 
 	if(priv->f)
 	{
+		if(debug)
+			syslog(LOG_DEBUG, "closing tmp file");
 		fclose(priv->f);
 		priv->f=NULL;
 	}
 
 	if(priv->filename)
 	{
+		if(debug)
+			syslog(LOG_DEBUG, "removing tmp file");
 		unlink(priv->filename);
 		free(priv->filename);
 		priv->filename=NULL;
 	}
 
 	priv->eom=1;
+
+	if(debug)
+		syslog(LOG_DEBUG, "...cleanning done");
 
 	return;
 }
@@ -513,7 +570,7 @@ usage(const char *argv0)
 {
 	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-p pipe]\n"
 		"\t\t[-b bogo_path ] [ -x exclude_string ] "
- 		"[ -c conf_file ]\n\t\t[ -l body_limit ]", argv0);
+ 		"[ -c conf_file ]\n\t\t[ -l body_limit ] [ -d ]\n", argv0);
 
 	return;
 }
@@ -548,7 +605,7 @@ main(int argc, char *argv[])
 	};
 
 	int opt;
-	const char *opts="hu:p:b:RDtvx:w:c:";
+	const char *opts="hu:p:b:RDtvx:w:c:l:d";
 
 	struct passwd *pw=NULL;
 
@@ -600,6 +657,11 @@ main(int argc, char *argv[])
 			case 'l':
 				bodylimit=(size_t)atol(optarg);
 				break;	
+
+			case 'd':
+				debug=1;
+				verbose=1;
+				break;
 		}
 
  	/* read configuration file */
