@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.18 2005/01/29 15:05:01 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.19 2005/02/01 21:25:49 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -90,7 +90,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.18 2005/01/29 15:05:01 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.19 2005/02/01 21:25:49 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -897,7 +897,7 @@ main(int argc, char *argv[])
                         fprintf(stderr, "setgid failed: %s\n", strerror(errno));
 			return 1;
 		}
-		if(seteuid(pw->pw_uid) || setuid(pw->pw_uid))
+		if(setuid(pw->pw_uid) || seteuid(pw->pw_uid))
 		{
 			fprintf(stderr, "setuid failed: %s\n", strerror(errno));
 			return 1;
