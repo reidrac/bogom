@@ -1,0 +1,120 @@
+.\" $Id$
+.\"
+.\" bogom, simple sendmail milter to interface bogofilter
+.\" Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License Version 2 as
+.\" published by the Free Software Foundation.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.Dd December 25, 2004
+.Dt BOGOM 8
+.Os
+.Sh NAME
+.Nm bogom
+.Nd simple sendmail milter to interface bogofilter
+.Sh SYNOPSIS
+.Nm
+.Op Fl R | Fl D
+.Op Fl t
+.Op Fl v
+.Op Fl u Ar user
+.Op Fl p Ar pipe
+.Op Fl b Ar bogo_path
+.Sh DESCRIPTION
+The
+.Nm
+plugin can be used with the milter API of
+.Xr sendmail 8
+to filter mails using
+.Xr bogofilter 1
+bayesian filter.
+.Pp
+.Nm
+is intended to be used with only one words database for the whole system.
+.Pp
+The options are as follows:
+.Bl -tag -width "-b bogo_path"
+.It Fl R
+Reject mail classified as spam
+.It Fl D
+Discard mail classified as spam
+.It Fl t
+Train bogofilter with the mail classified as spam/ham
+.It Fl v
+Verbose logging, including bogogilter messages
+.It Fl u Ar user
+User to run the milter.
+Default: bogofilter 
+.It Fl p Ar pipe
+Path to the pipe to connect sendmail. Default:
+.Pa unix:/var/spool/bogofilter/milter.sock
+.It Fl b Ar bogo_path
+Path to the
+.Xr bogofilter 1
+binary.
+Default:
+.Pa /usr/local/bin/bogofilter
+.El
+.Pp
+Default action is to add the
+.Em X-Bogosity
+header (Yes, No, Unsure) and deliver the mail. This can be changed with
+.Cm -R
+or
+.Cm -D
+when
+bogofilter classifies the mail as spam.
+.Pp
+You should set 
+.Em bogofilter_dir
+to the directory with system database, usually
+.Pa /var/spool/bogofilter ,
+in bogofilter's configuration, or simply use the words database of the 
+unprivileged user running the milter.
+.Pp
+.Nm
+uses a temporal file to store each individual message and forks a new 
+process to scan it with bogofilter. This temporal file uses 
+.Pa /tmp
+directory, it's owned by the user running the milter and has 0600 mode.
+.Pp
+The option
+.Cm -t
+registers the mail after classifying it as spam or ham.
+This option can be dangerous because the filter may register errors, so
+you should read carefully bogofilter's manual regarding this point.
+.Sh LOGGING
+.Nm
+sends messages to
+.Xr syslogd 8
+using
+facility
+daemon and
+levels
+err, notice and info.
+.Sh SEE ALSO
+.Xr sendmail 8 ,
+.Xr bogofilter 1 ,
+.Xr bogoutil 1 ,
+.Xr syslog.conf 5 ,
+.Xr syslogd 8
+.Pp
+http://www.usebox.net/jjm/bogom/
+.Sh HISTORY
+The first version of
+.Nm
+was written in the end of 2004.
+.Sh AUTHORS
+Juan J. Martinez
+.Aq jjm@usebox.net
+
