@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.13 2005/01/27 22:34:43 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.14 2005/01/27 23:29:01 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -93,12 +93,12 @@ or
 when
 bogofilter classifies the mail as spam.
 .Pp
-You should set 
+In bogofilter's configuration the
 .Em bogofilter_dir
-to the directory with system database, usually
+token should be set to the directory with system database, usually
 .Pa /var/spool/bogofilter ,
-in bogofilter's configuration, or simply use the words database of the 
-unprivileged user running the milter.
+in bogofilter's configuration, or simply the words database of the 
+unprivileged user running the milter can be used.
 .Pp
 .Nm
 uses a temporal file to store each individual message and forks a new 
@@ -206,12 +206,10 @@ log facility provided in bofogilter.
 option enables debug level with very verbose logging.
 .Pp
 .Nm
-activity can be logged to a separate file with following lines
+activity can be logged to a separate file with following lines in
 .Xr syslog.conf 5 :
 .Bd -literal
-!bogom
-*.*				/var/log/bogom
-!bogofilter
+!bogom,bogofilter
 *.*				/var/log/bogom
 .Ed
 .Sh FILES
@@ -232,4 +230,3 @@ was written in the end of 2004.
 .Sh AUTHORS
 Juan J. Martinez
 .Aq jjm@usebox.net
-
