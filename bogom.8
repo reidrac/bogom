@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.11 2005/01/22 12:37:39 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.12 2005/01/25 22:19:58 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -32,6 +32,7 @@
 .Op Fl b Ar bogo_path
 .Op Fl x Ar exclude_string
 .Op Fl c Ar conf_file
+.Op Fl l Ar body_limit
 .Sh DESCRIPTION
 The
 .Nm
@@ -73,6 +74,11 @@ automatically accepted and no filtering operation will be done.
 Path to the configuration file.
 Default:
 .Pa /etc/bogom.conf
+.It Fl l Ar body_limit
+Length limit in bytes to be processed from mail body. The rest of the body
+will be discarded and not analyzed by the filter.
+Default:
+.Pa no limit
 .El
 .Pp
 Default policy is to add the
@@ -137,6 +143,9 @@ Configuration file supports following tokens:
 
  training (0|1)
  default: training 0
+
+ body_limit <length in bytes>
+ default: no limit 
 
  user "<username to run the milter>"
  default: user "bogofilter"
