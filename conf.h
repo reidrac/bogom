@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: conf.h,v 1.1 2005/01/02 17:52:53 reidrac Exp reidrac $ */
 
 /*
 * conf.h, configuration reader and parser include
@@ -42,7 +42,6 @@ struct conftoken
 	int bool;
 	struct string_list *sl;
 };
-
 
 int read_conf(const char *filename, struct conftoken *);
 
