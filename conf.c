@@ -1,4 +1,4 @@
-/* $Id: conf.c,v 1.4 2005/01/10 11:38:36 reidrac Exp reidrac $ */
+/* $Id: conf.c,v 1.5 2005/01/23 10:06:36 reidrac Exp reidrac $ */
 
 /*
 * conf.c, configuration reader and parser
@@ -23,11 +23,10 @@
 #include<stdlib.h>
 #include<string.h>
 #include<errno.h>
+#include<ctype.h>
 
 #include "libmilter/mfapi.h"
 #include "conf.h"
-
-#define is_blank(x) (x==' ' || x=='\t' || x=='\n')
 
 #define new_string_list(x) do {\
 		x=(struct string_list *) \
@@ -41,7 +40,7 @@ static int parse_qstring(char *p);
 static int parse_bool(char *p);
 static char * parse_conf(struct conftoken *conf, char *p);
 
-static const char rcsid[]="$Id: conf.c,v 1.4 2005/01/10 11:38:36 reidrac Exp reidrac $";
+static const char rcsid[]="$Id: conf.c,v 1.5 2005/01/23 10:06:36 reidrac Exp reidrac $";
 
 /*
 * strncpy alike function that parses scaped quotes
@@ -72,7 +71,7 @@ parse_string(char *p)
 {
 	char *t;
 
-	for(t=p; *t && !is_blank(*t); t++);
+	for(t=p; *t && !isspace(*t); t++);
 
 	return (int)(t-p);
 }
@@ -114,7 +113,7 @@ parse_qstring(char *p)
 static int
 parse_bool(char *p)
 {
-	if(!p[0] || !is_blank(p[1]))
+	if(!p[0] || !isspace(p[1]))
 		return -1;
 
 	if(*p=='0')
@@ -138,7 +137,7 @@ parse_conf(struct conftoken *conf, char *p)
 	if(!p[0] || p[0]=='\n' || p[0]=='#')
 		return NULL;
 
-	while(is_blank(*p))
+	while(isspace(*p))
 		p++;
 
 	len=parse_string(p);
@@ -149,7 +148,7 @@ parse_conf(struct conftoken *conf, char *p)
 		if(!strncmp(conf[i].word, p, strlen(conf[i].word))) 
 		{
 			p+=len;
-			while(is_blank(*p))
+			while(isspace(*p))
 				p++;
 
 			switch(conf[i].required)
@@ -294,7 +293,7 @@ parse_conf(struct conftoken *conf, char *p)
 
 	if(conf[i].word)
 	{
-		while(is_blank(*p))
+		while(isspace(*p))
 			p++;
 
 		if(!p[0])
