@@ -1,8 +1,8 @@
-/* $Id: milter.c,v 1.9 2005/01/08 12:02:31 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.10 2005/01/10 11:43:18 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
-* Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net> 
+* Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net> 
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License Version 2 as
@@ -21,6 +21,9 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +87,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.9 2005/01/08 12:02:31 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.10 2005/01/10 11:43:18 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -94,12 +97,62 @@ static const char	*exclude=NULL;
 
 static char		*reject=NULL;
 
-static struct re_list	*re=NULL;
+static struct re_list	*re_f=NULL;
+static struct re_list	*re_c=NULL;
 
 sfsistat 
 mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 {
 	struct mlfiPriv *priv;
+	struct re_list *tre;	/* temporal iterator */
+
+	const void *s_addr=NULL;
+	char host[INET6_ADDRSTRLEN];
+
+	switch(hostaddr->sa_family)
+	{
+		default:
+			syslog(LOG_ERR, "mlfi_connet: unsupported sa_family");
+			break;
+
+		case AF_INET:
+			s_addr=(const void *)&((struct sockaddr_in *)hostaddr)
+				->sin_addr.s_addr;
+			break;
+
+		case AF_INET6:
+			s_addr=(const void *)&((struct sockaddr_in6 *)hostaddr)
+				->sin6_addr;
+			break;
+	}
+
+	if(!inet_ntop(hostaddr->sa_family, s_addr, host, sizeof(host)))
+	{
+		syslog(LOG_ERR, "mlfi_connect: inet_ntop failed");
+		strcpy(host, "*");
+	}
+
+	for(tre=re_c; tre; tre=tre->n)
+	{
+		if(!regexec(&tre->p, hostname, 0, NULL, 0))
+		{
+			if(verbose)
+				syslog(LOG_INFO, 
+				"accepted due pattern match (connect): %s", 
+						tre->pat);
+
+			return SMFIS_ACCEPT;
+		}
+
+		if(!regexec(&tre->p, host, 0, NULL, 0))
+		{
+			if(verbose)
+				syslog(LOG_INFO, 
+				"accepted due pattern match (connect): %s", 
+						tre->pat);
+			return SMFIS_ACCEPT;
+		}
+	}
 
 	priv=(struct mlfiPriv *)malloc(sizeof(struct mlfiPriv));
 	if(!priv)
@@ -128,12 +181,12 @@ mlfi_envfrom(SMFICTX *ctx, char **argv)
 {
 	struct re_list *tre;	/* temporal iterator */
 
-	for(tre=re; tre; tre=tre->n)
+	for(tre=re_f; tre; tre=tre->n)
 		if(!regexec(&tre->p, argv[0], 0, NULL, 0))
 		{
 			if(verbose)
 				syslog(LOG_INFO, 
-					"accepted due pattern match: %s", 
+				"accepted due pattern match (envfrom): %s", 
 						tre->pat);
 			return SMFIS_ACCEPT;
 		}
@@ -446,6 +499,7 @@ main(int argc, char *argv[])
  		{ "bogofilter", REQ_QSTRING, NULL, 0 },
  		{ "policy", REQ_STRING, NULL, 0 },
  		{ "reject", REQ_QSTRING, NULL, 0 },
+ 		{ "re_connection", REQ_LSTQSTRING, NULL, 0 },
  		{ NULL, NULL, NULL, 0 }
 	};
 
@@ -482,53 +536,19 @@ main(int argc, char *argv[])
 			case 'D':
 				mode=SMFIS_DISCARD;
 				break;
+
 			case 't':
 				train=1;
 				break;
+
 			case 'v':
 				verbose=1;
 				break;
+
 			case 'x':
 				exclude=optarg;
 				break;	
-			case 'w':
-				if(!re)
-				{
-					new_re_list(re);
-					if(!re)
-					{
-						fprintf(stderr,
-						"unable to get memory: %s\n", 
-						strerror(errno));
-						return 1;
-					}
-				}
-				else
-				{
-					new_re_list(tre);
-					if(!tre)
-					{
-						fprintf(stderr, 
-						"unable to get memory: %s\n", 
-						strerror(errno));
-						return 1;
-					}
-					tre->n=re;
-					re=tre;
-				}
 
-				if(regcomp(&(re->p), optarg, REG_EXTENDED|
-					REG_ICASE|REG_NOSUB))
-				{
-					fprintf(stderr,"Bad pattern: %s\n",
-						optarg);
-					return 1;
-				}
-				re->pat=optarg;
-				fprintf(stderr,
-					"-w option has been deprecated, please"
-					" use re_envfrom instead\n");
-				break;
 			case 'c':
 				conffile=optarg;
 				break;	
@@ -556,10 +576,10 @@ main(int argc, char *argv[])
  		{
  			for(tsl=conf[5].sl; tsl; tsl=tsl->n, free(tsl2))
  			{
-				if(!re)
+				if(!re_f)
 				{
-					new_re_list(re);
-					if(!re)
+					new_re_list(re_f);
+					if(!re_f)
 					{
 						fprintf(stderr,
 						"unable to get memory: %s\n", 
@@ -577,18 +597,18 @@ main(int argc, char *argv[])
 						strerror(errno));
 						return 1;
 					}
-					tre->n=re;
-					re=tre;
+					tre->n=re_f;
+					re_f=tre;
 				}
  
- 				if(regcomp(&(re->p), tsl->s, REG_EXTENDED|
+ 				if(regcomp(&(re_f->p), tsl->s, REG_EXTENDED|
  					REG_ICASE|REG_NOSUB))
  				{
  					fprintf(stderr,"Bad pattern: %s\n",
  						tsl->s);
  					return 1;
  				}
- 				re->pat=tsl->s;
+ 				re_f->pat=tsl->s;
  				tsl2=tsl;
  			}
  			conf[5].sl=NULL;
@@ -621,6 +641,48 @@ main(int argc, char *argv[])
 
  		if(conf[8].str)
  			reject=conf[8].str;
+
+ 		if(conf[9].sl)
+ 		{
+ 			for(tsl=conf[9].sl; tsl; tsl=tsl->n, free(tsl2))
+ 			{
+				if(!re_c)
+				{
+					new_re_list(re_c);
+					if(!re_c)
+					{
+						fprintf(stderr,
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+				}
+				else
+				{
+					new_re_list(tre);
+					if(!tre)
+					{
+						fprintf(stderr, 
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+					tre->n=re_c;
+					re_c=tre;
+				}
+ 
+ 				if(regcomp(&(re_c->p), tsl->s, REG_EXTENDED|
+ 					REG_ICASE|REG_NOSUB))
+ 				{
+ 					fprintf(stderr,"Bad pattern: %s\n",
+ 						tsl->s);
+ 					return 1;
+ 				}
+ 				re_c->pat=tsl->s;
+ 				tsl2=tsl;
+ 			}
+ 			conf[9].sl=NULL;
+ 		}
  	}
 
 	if(!strncmp(conn, "unix:", 5))
