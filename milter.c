@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.17 2005/01/27 23:28:48 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.18 2005/01/29 15:05:01 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -90,7 +90,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.17 2005/01/27 23:28:48 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.18 2005/01/29 15:05:01 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -589,19 +589,19 @@ main(int argc, char *argv[])
  	/* configuration tokens */
  	struct conftoken conf[]=
  	{
- 		{ "verbose", REQ_BOOL, NULL, -1 },
- 		{ "training", REQ_BOOL, NULL, -1 },
- 		{ "user", REQ_QSTRING, NULL, 0 },
- 		{ "connection", REQ_QSTRING, NULL, 0 },
- 		{ "exclude_string", REQ_QSTRING, NULL, 0 },
- 		{ "re_envfrom", REQ_LSTQSTRING, NULL, 0 },
- 		{ "bogofilter", REQ_QSTRING, NULL, 0 },
- 		{ "policy", REQ_STRING, NULL, 0 },
- 		{ "reject", REQ_QSTRING, NULL, 0 },
- 		{ "re_connection", REQ_LSTQSTRING, NULL, 0 },
- 		{ "re_envrcpt", REQ_LSTQSTRING, NULL, 0 },
- 		{ "body_limit", REQ_STRING, NULL, 0 },
- 		{ NULL, NULL, NULL, 0 }
+ 		{ "verbose", REQ_BOOL, NULL, -1, NULL },
+ 		{ "training", REQ_BOOL, NULL, -1, NULL },
+ 		{ "user", REQ_QSTRING, NULL, 0, NULL },
+ 		{ "connection", REQ_QSTRING, NULL, 0, NULL },
+ 		{ "exclude_string", REQ_QSTRING, NULL, 0, NULL },
+ 		{ "re_envfrom", REQ_LSTQSTRING, NULL, 0, NULL },
+ 		{ "bogofilter", REQ_QSTRING, NULL, 0, NULL },
+ 		{ "policy", REQ_STRING, NULL, 0, NULL },
+ 		{ "reject", REQ_QSTRING, NULL, 0, NULL },
+ 		{ "re_connection", REQ_LSTQSTRING, NULL, 0, NULL },
+ 		{ "re_envrcpt", REQ_LSTQSTRING, NULL, 0, NULL },
+ 		{ "body_limit", REQ_STRING, NULL, 0, NULL },
+ 		{ NULL, 0, NULL, 0, NULL }
 	};
 
 	int opt;
