@@ -1,4 +1,4 @@
-.\" $Id$
+.\" $Id: bogom.8,v 1.1 2004/12/27 09:28:21 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -30,6 +30,7 @@
 .Op Fl u Ar user
 .Op Fl p Ar pipe
 .Op Fl b Ar bogo_path
+.Op Fl x Ar exclude_string
 .Sh DESCRIPTION
 The
 .Nm
@@ -43,7 +44,7 @@ bayesian filter.
 is intended to be used with only one words database for the whole system.
 .Pp
 The options are as follows:
-.Bl -tag -width "-b bogo_path"
+.Bl -tag -width "-x exclude_string"
 .It Fl R
 Reject mail classified as spam
 .It Fl D
@@ -64,6 +65,9 @@ Path to the
 binary.
 Default:
 .Pa /usr/local/bin/bogofilter
+.It Fl x Ar exclude_string
+If this string is found in the Subject of a message, it will be
+automatically accepted and no filtering operation will be done.
 .El
 .Pp
 Default action is to add the
