@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.1 2004/12/27 09:28:08 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.2 2004/12/27 22:33:53 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -21,16 +21,13 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sysexits.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <syslog.h>
-#include <signal.h>
 
 #include "libmilter/mfapi.h"
 
@@ -70,7 +67,7 @@ struct smfiDesc smfilter=
 	mlfi_close	/* connection cleanup */
 };
 
-static const char 	rcsid[]="$Id: milter.c,v 1.1 2004/12/27 09:28:08 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.2 2004/12/27 22:33:53 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
