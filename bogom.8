@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.6 2004/12/29 18:19:43 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.7 2005/01/02 17:53:50 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -131,6 +131,10 @@ Configuration file supports following tokens:
 
  policy (pass|reject|discard)
  default: policy pass
+
+ reject "<text for the SMTP reply>"
+ default: empty
+ (sendmail default is "Command rejected")
 
  verbose (0|1)
  default: verbose 0
