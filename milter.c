@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.16 2005/01/27 22:26:38 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.17 2005/01/27 23:28:48 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -90,7 +90,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.16 2005/01/27 22:26:38 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.17 2005/01/27 23:28:48 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -841,7 +841,7 @@ main(int argc, char *argv[])
 			bodylimit=atoi(conf[11].str);
 			if(bodylimit<=0)
 			{
-				fprintf(stderr, "Warning: body_lengtht value"
+				fprintf(stderr, "Warning: body_length value"
 						"is invalid, ignored\n");
 				bodylimit=0;
 			}
