@@ -1,8 +1,8 @@
-/* $Id: conf.h,v 1.1 2005/01/02 17:52:53 reidrac Exp reidrac $ */
+/* $Id: conf.h,v 1.2 2005/01/10 11:39:06 reidrac Exp reidrac $ */
 
 /*
 * conf.h, configuration reader and parser include
-* Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
+* Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License Version 2 as
