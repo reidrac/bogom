@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.21 2005/02/08 23:13:46 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.22 2005/02/15 21:04:09 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -37,9 +37,10 @@
 #include "libmilter/mfapi.h"
 #include "conf.h"
 
-#define DEF_USER	"bogofilter"
-
 /* defaults */
+#ifndef DEF_USER
+#define DEF_USER	"bogofilter"
+#endif
 #ifndef DEF_CONN
 #define DEF_CONN	"unix:/var/spool/bogofilter/milter.sock"
 #endif
@@ -100,7 +101,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.21 2005/02/08 23:13:46 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.22 2005/02/15 21:04:09 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
