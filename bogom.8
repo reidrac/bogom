@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.3 2004/12/28 15:00:28 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.4 2004/12/28 15:26:06 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -31,6 +31,7 @@
 .Op Fl p Ar pipe
 .Op Fl b Ar bogo_path
 .Op Fl x Ar exclude_string
+.Op Fl w Ar re_whitelist
 .Sh DESCRIPTION
 The
 .Nm
@@ -68,6 +69,12 @@ Default:
 .It Fl x Ar exclude_string
 If this string is found in the Subject of a message, it will be
 automatically accepted and no filtering operation will be done.
+.It Fl w Ar re_whitelist
+Any message with sender address matching the specified case insensitive
+extended regular expression (explained in
+.Xr re_format 7 )
+will be accepted and no filtering operation will be done. This option can 
+be used more than once and all the regular expressions will be checked.
 .El
 .Pp
 Default action is to add the
@@ -134,7 +141,8 @@ log facility provided in bofogilter.
 .Xr bogofilter 1 ,
 .Xr bogoutil 1 ,
 .Xr syslog.conf 5 ,
-.Xr syslogd 8
+.Xr syslogd 8 ,
+.Xr re_format 7
 .Pp
 http://www.usebox.net/jjm/bogom/
 .Sh HISTORY
