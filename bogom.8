@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.8 2005/01/02 22:37:33 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.9 2005/01/04 12:41:08 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -151,7 +151,7 @@ Configuration file supports following tokens:
  default: empty
 .Ed
 .Pp
-Command line options take precedence over configuration file. 
+Configuration takes precedence over command line. 
 .Pp
 Any message with sender address matching the case insensitive extended 
 regular expression (explained in
@@ -160,6 +160,9 @@ specified by
 .Em re_envfrom
 will be accepted and no filtering operation will be done. This token can 
 be used more than once and all the regular expressions will be checked.
+.Pp
+Quoted strings can use single and double quotes, using backslash to escape both
+characters.
 .Sh LOGGING
 .Nm
 sends messages to
