@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.16 2005/02/04 15:02:25 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.17 2005/02/15 21:06:14 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -144,6 +144,9 @@ Configuration file supports following tokens:
  default: empty
  (sendmail default is "Command rejected")
 
+ subject_tag "<text to tag the subject>"
+ default: empty
+
  verbose (0|1)
  default: verbose 0
 
@@ -179,6 +182,10 @@ Configuration file supports following tokens:
 .Ed
 .Pp
 Configuration takes precedence over command line. 
+.Pp
+.Em subject_tag
+string will be prepend to message subject when it is identified as spam
+and policy is pass.
 .Pp
 The
 .Em re_*
