@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.14 2005/01/27 23:29:01 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.15 2005/01/31 12:39:06 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -209,7 +209,9 @@ option enables debug level with very verbose logging.
 activity can be logged to a separate file with following lines in
 .Xr syslog.conf 5 :
 .Bd -literal
-!bogom,bogofilter
+!bogom
+*.*				/var/log/bogom
+!bogofilter
 *.*				/var/log/bogom
 .Ed
 .Sh FILES
