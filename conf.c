@@ -1,4 +1,4 @@
-/* $Id: conf.c,v 1.6 2005/01/27 21:48:12 reidrac Exp reidrac $ */
+/* $Id: conf.c,v 1.7 2005/02/02 20:17:54 reidrac Exp reidrac $ */
 
 /*
 * conf.c, configuration reader and parser
@@ -40,7 +40,7 @@ static int parse_qstring(char *p);
 static int parse_bool(char *p);
 static char * parse_conf(struct conftoken *conf, char *p);
 
-static const char rcsid[]="$Id: conf.c,v 1.6 2005/01/27 21:48:12 reidrac Exp reidrac $";
+static const char rcsid[]="$Id: conf.c,v 1.7 2005/02/02 20:17:54 reidrac Exp reidrac $";
 
 /*
 * strncpy alike function that parses scaped quotes
@@ -322,7 +322,7 @@ read_conf(const char *filename, struct conftoken *conf)
 
 	fd=fopen(filename, "r");
 	if(!fd)
-		return 1;
+		return 0;
 
 	line=1;
 	while(!feof(fd))
