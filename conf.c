@@ -1,4 +1,4 @@
-/* $Id: conf.c,v 1.1 2005/01/02 17:52:38 reidrac Exp reidrac $ */
+/* $Id: conf.c,v 1.2 2005/01/08 12:02:40 reidrac Exp reidrac $ */
 
 /*
 * conf.c, configuration reader and parser
@@ -39,6 +39,8 @@ static int parse_string(char *p);
 static int parse_qstring(char *p);
 static int parse_bool(char *p);
 static char * parse_conf(struct conftoken *conf, char *p);
+
+static const char rcsid[]="$Id$";
 
 static char *
 pstrncpy(char *d, const char *s, size_t l)
