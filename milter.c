@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.11 2005/01/22 12:38:10 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.12 2005/01/23 10:07:07 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -49,6 +49,7 @@ struct mlfiPriv
 
 sfsistat mlfi_connect(SMFICTX *, char *, _SOCK_ADDR *);
 sfsistat mlfi_envfrom(SMFICTX *, char **);
+sfsistat mlfi_envrcpt(SMFICTX *, char **);
 sfsistat mlfi_header(SMFICTX *, char *, char *);
 sfsistat mlfi_eoh(SMFICTX *);
 sfsistat mlfi_body(SMFICTX *, unsigned char *, size_t);
@@ -65,7 +66,7 @@ struct smfiDesc smfilter=
 	mlfi_connect,	/* connection info filter */
 	NULL,		/* SMTP HELO command filter */
 	mlfi_envfrom,	/* envelope sender filter */
-	NULL,		/* envelope recipient filter */
+	mlfi_envrcpt,	/* envelope recipient filter */
 	mlfi_header,	/* header filter */
 	mlfi_eoh,	/* end of header */
 	mlfi_body,	/* body block filter */
@@ -87,7 +88,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.11 2005/01/22 12:38:10 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.12 2005/01/23 10:07:07 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -97,8 +98,9 @@ static const char	*exclude=NULL;
 
 static char		*reject=NULL;
 
-static struct re_list	*re_f=NULL;
-static struct re_list	*re_c=NULL;
+static struct re_list	*re_c=NULL;	/* re connection */
+static struct re_list	*re_f=NULL;	/* re envfrom */
+static struct re_list	*re_r=NULL;	/* re envrcpt */
 
 sfsistat 
 mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
@@ -175,7 +177,6 @@ mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 	return SMFIS_CONTINUE;
 }
 
-
 sfsistat 
 mlfi_envfrom(SMFICTX *ctx, char **argv)
 {
@@ -187,6 +188,24 @@ mlfi_envfrom(SMFICTX *ctx, char **argv)
 			if(verbose)
 				syslog(LOG_INFO, 
 				"accepted due pattern match (envfrom): %s", 
+						tre->pat);
+			return SMFIS_ACCEPT;
+		}
+
+	return SMFIS_CONTINUE;
+}
+
+sfsistat 
+mlfi_envrcpt(SMFICTX *ctx, char **argv)
+{
+	struct re_list *tre;	/* temporal iterator */
+
+	for(tre=re_r; tre; tre=tre->n)
+		if(!regexec(&tre->p, argv[0], 0, NULL, 0))
+		{
+			if(verbose)
+				syslog(LOG_INFO, 
+				"accepted due pattern match (envrcpt): %s", 
 						tre->pat);
 			return SMFIS_ACCEPT;
 		}
@@ -497,6 +516,7 @@ main(int argc, char *argv[])
  		{ "policy", REQ_STRING, NULL, 0 },
  		{ "reject", REQ_QSTRING, NULL, 0 },
  		{ "re_connection", REQ_LSTQSTRING, NULL, 0 },
+ 		{ "re_envrcpt", REQ_LSTQSTRING, NULL, 0 },
  		{ NULL, NULL, NULL, 0 }
 	};
 
@@ -680,7 +700,51 @@ main(int argc, char *argv[])
  			}
  			conf[9].sl=NULL;
  		}
+
+ 		if(conf[10].sl)
+ 		{
+ 			for(tsl=conf[10].sl; tsl; tsl=tsl->n, free(tsl2))
+ 			{
+				if(!re_r)
+				{
+					new_re_list(re_r);
+					if(!re_r)
+					{
+						fprintf(stderr,
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+				}
+				else
+				{
+					new_re_list(tre);
+					if(!tre)
+					{
+						fprintf(stderr, 
+						"unable to get memory: %s\n", 
+						strerror(errno));
+						return 1;
+					}
+					tre->n=re_r;
+					re_r=tre;
+				}
+ 
+ 				if(regcomp(&(re_r->p), tsl->s, REG_EXTENDED|
+ 					REG_ICASE|REG_NOSUB))
+ 				{
+ 					fprintf(stderr,"Bad pattern: %s\n",
+ 						tsl->s);
+ 					return 1;
+ 				}
+ 				re_r->pat=tsl->s;
+ 				tsl2=tsl;
+ 			}
+ 			conf[10].sl=NULL;
+ 		}
  	}
+	else
+		return 0; /* error reading configuration */
 
 	if(!strncmp(conn, "unix:", 5))
 		pipe=conn+5;
