@@ -1,5 +1,5 @@
 #
-# $Id: bogom.conf-example,v 1.6 2005/01/27 22:34:52 reidrac Exp reidrac $
+# $Id: bogom.conf-example,v 1.7 2005/02/15 21:06:30 reidrac Exp reidrac $
 #
 # Example of bogom configuration
 #
@@ -17,6 +17,14 @@
 #
 # default: empty
 # (sendmail's default is: "Command rejected")
+
+#
+# subject_tag "<text to tag the subject>"
+#
+# subject_tag "*SPAM*"
+# subject_tag "[spam detected]"
+#
+# default: empty
 
 #
 # verbose (0|1)
