@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.14 2005/01/26 10:01:41 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.15 2005/01/26 13:14:40 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -45,6 +45,7 @@ struct mlfiPriv
 	FILE *f;
 	char *filename;
 	int eom;
+	size_t bodylen;
 };
 
 sfsistat mlfi_connect(SMFICTX *, char *, _SOCK_ADDR *);
@@ -89,11 +90,12 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.14 2005/01/26 10:01:41 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.15 2005/01/26 13:14:40 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
 static int		verbose=0;
+static size_t		bodylimit=0;
 static const char 	*bogo="/usr/local/bin/bogofilter";
 static const char	*exclude=NULL;
 
@@ -275,6 +277,7 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 		}
 
 		priv->eom=0;
+		priv->bodylen=0;
 	}
 
 	if(fprintf(priv->f, "%s: %s\n", headerf, headerv)==EOF)
@@ -323,12 +326,26 @@ mlfi_body(SMFICTX *ctx, unsigned char *bodyp, size_t bodylen)
 		return SMFIS_ACCEPT;
 	}
 
-	if(fwrite(bodyp, bodylen, 1, priv->f)!=1)
+	if(bodylimit)
 	{
-		syslog(LOG_ERR, "failed to write into %s: %s", 
-			priv->filename, strerror(errno));
-		mlfi_clean(ctx);
-		return SMFIS_TEMPFAIL;
+		if(bodylimit==priv->bodylen)
+			bodylen=0;
+		else
+			if(priv->bodylen+bodylen>bodylimit)
+				bodylen=bodylimit-priv->bodylen;
+	}
+
+	if(bodylen>0)
+	{
+		if(fwrite(bodyp, bodylen, 1, priv->f)!=1)
+		{
+			syslog(LOG_ERR, "failed to write into %s: %s", 
+				priv->filename, strerror(errno));
+			mlfi_clean(ctx);
+			return SMFIS_TEMPFAIL;
+		}
+		else
+			priv->bodylen+=bodylen;
 	}
 
 	return SMFIS_CONTINUE;
@@ -496,7 +513,7 @@ usage(const char *argv0)
 {
 	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-p pipe]\n"
 		"\t\t[-b bogo_path ] [ -x exclude_string ] "
- 		"[ -c conf_file ]\n", argv0);
+ 		"[ -c conf_file ]\n\t\t[ -l body_limit ]", argv0);
 
 	return;
 }
@@ -526,6 +543,7 @@ main(int argc, char *argv[])
  		{ "reject", REQ_QSTRING, NULL, 0 },
  		{ "re_connection", REQ_LSTQSTRING, NULL, 0 },
  		{ "re_envrcpt", REQ_LSTQSTRING, NULL, 0 },
+ 		{ "body_limit", REQ_STRING, NULL, 0 },
  		{ NULL, NULL, NULL, 0 }
 	};
 
@@ -577,6 +595,10 @@ main(int argc, char *argv[])
 
 			case 'c':
 				conffile=optarg;
+				break;	
+
+			case 'l':
+				bodylimit=(size_t)atol(optarg);
 				break;	
 		}
 
@@ -751,6 +773,34 @@ main(int argc, char *argv[])
  			}
  			conf[10].sl=NULL;
  		}
+
+		if(conf[11].str)
+ 		{
+			bodylimit=atoi(conf[11].str);
+			if(bodylimit<=0)
+			{
+				fprintf(stderr, "Warning: body_lengtht value"
+						"is invalid, ignored\n");
+				bodylimit=0;
+			}
+
+			/* parse units */
+			switch(conf[11].str[strlen(conf[11].str)-1])
+			{
+				default:
+					/* nothing, use bytes */
+					break;
+				case 'k':
+				case 'K':
+					bodylimit*=1024;
+					break;
+				case 'm':
+				case 'M':
+					bodylimit*=1024*1024;
+					break;
+			}
+ 		}
+
  	}
 	else
 		return 1; /* error reading configuration */
