@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.15 2005/01/31 12:39:06 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.16 2005/02/04 15:02:25 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -28,11 +28,12 @@
 .Op Fl t
 .Op Fl v
 .Op Fl u Ar user
-.Op Fl p Ar pipe
+.Op Fl s Ar conn
 .Op Fl b Ar bogo_path
 .Op Fl x Ar exclude_string
 .Op Fl c Ar conf_file
 .Op Fl l Ar body_limit
+.Op Fl p Ar pidfile
 .Op Fl d
 .Sh DESCRIPTION
 The
@@ -59,7 +60,7 @@ Verbose logging
 .It Fl u Ar user
 User to run the milter.
 Default: bogofilter 
-.It Fl p Ar pipe
+.It Fl s Ar conn
 Path to the pipe to connect sendmail. Default:
 .Pa unix:/var/spool/bogofilter/milter.sock
 .It Fl b Ar bogo_path
@@ -80,6 +81,11 @@ Length limit in bytes to be processed from mail body. The rest of the body
 will be discarded and not analyzed by the filter.
 Default:
 .Pa no limit
+.It Fl p Ar pidfile
+Path to the file to store the pid of the milter. The pidfile is created
+after the milter drops privileges and the user to run the milter
+must have write permission to the specified file. Default:
+.Pa /var/spool/bogofilter/bogom.pid
 .It Fl d
 Enable debug messages (implies verbose logging)
 .El
@@ -156,6 +162,9 @@ Configuration file supports following tokens:
  connection "<type>:<location>"
  default: connection "unix:/var/spool/bogofilter/milter.sock"
 
+ pidfile "<path to milter pidfile>"
+ default: pidfile "/var/spool/bogofilter/bogom.pid"
+
  exclude_string "<subject exclude string>"
  default: empty
 
@@ -225,6 +234,8 @@ activity can be logged to a separate file with following lines in
 .Xr re_format 7
 .Pp
 http://www.usebox.net/jjm/bogom/
+.Sh CAVEATS
+By now SIGHUP is ignored.
 .Sh HISTORY
 The first version of
 .Nm
