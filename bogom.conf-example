@@ -1,0 +1,53 @@
+#
+# $Id$
+#
+# Example of bogom configuration
+#
+
+#
+# policy (pass|reject|discard)
+#
+# default: policy pass
+
+#
+# verbose (0|1)
+#
+# default: verbose 0
+
+#
+# bogofilter "<path to bogofilter binary>"
+#
+# default: bogofilter "/usr/local/bin/bogofilter"
+
+#
+# training (0|1)
+#
+# default: training 0
+
+#
+# user "<username to run the milter>"
+#
+# default: user "bogofilter"
+
+#
+# connection "<type>:<location>"
+#
+# default: connection "unix:/var/spool/bogofilter/milter.sock"
+
+#
+# exclude_string "<subject exclude string>"
+#
+# exlude_string "[no-bogofilter]"
+# exlude_string "*no filter*"
+# 
+# default: empty
+
+#
+# re_envfrom "<case insensitive extended regular expression>"
+#
+# re_envfrom "\.usebox\.net>$"
+# re_envfrom "@usebox\.net>$"
+#
+# default: empty
+
+# EOF
