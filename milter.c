@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.10 2005/01/10 11:43:18 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.11 2005/01/22 12:38:10 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -87,7 +87,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.10 2005/01/10 11:43:18 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.11 2005/01/22 12:38:10 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -424,10 +424,7 @@ mlfi_close(SMFICTX *ctx)
 
 	priv=(struct mlfiPriv *)smfi_getpriv(ctx);
 	if(!priv)
-	{
-		syslog(LOG_ERR, "on mlfi_close: smfi_getpriv");
 		return SMFIS_CONTINUE;
-	}
 
 	if(!priv->eom)
 		mlfi_clean(ctx);
