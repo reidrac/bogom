@@ -1,5 +1,5 @@
 #
-# $Id: bogom.conf-example,v 1.2 2005/01/02 22:37:46 reidrac Exp reidrac $
+# $Id: bogom.conf-example,v 1.3 2005/01/03 12:10:05 reidrac Exp reidrac $
 #
 # Example of bogom configuration
 #
@@ -52,7 +52,15 @@
 # default: empty
 
 #
-# re_envfrom "<case insensitive extended regular expression>"
+# re_connection "<case insensitive extended re>"
+#
+# re_connection "192\.168\.0\."
+# re_connection "openbsd\.org$"
+#
+# default: empty
+
+#
+# re_envfrom "<case insensitive extended re>"
 #
 # re_envfrom "\.usebox\.net>$"
 # re_envfrom "@usebox\.net>$"
