@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.10 2005/01/08 11:59:43 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.11 2005/01/22 12:37:39 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -152,6 +152,9 @@ Configuration file supports following tokens:
 
  re_envfrom "<case insensitive extended re>"
  default: empty
+
+ re_envrcpt "<case insensitive extended re>"
+ default: empty
 .Ed
 .Pp
 Configuration takes precedence over command line. 
@@ -159,12 +162,13 @@ Configuration takes precedence over command line.
 The
 .Em re_*
 tokens allow to add items to 
-.Em envfrom 
+.Em connection ,
+.Em envfrom
 and 
-.Em connection 
-white lists. Any message with sender address or client connection 
-(both host and hostname, if available) matching the case insensitive 
-extended regular expression (explained in
+.Em envrcpt
+white lists. Any message with client connection (both host and hostname,
+if available), sender address or destination address matching the case
+insensitive extended regular expression (explained in
 .Xr re_format 7 )
 will be accepted and no filtering operation will be done. Those token can 
 be used more than once and all the regular expressions will be checked.
