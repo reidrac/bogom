@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.5 2004/12/29 18:06:01 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.6 2004/12/29 18:19:43 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -32,6 +32,7 @@
 .Op Fl b Ar bogo_path
 .Op Fl x Ar exclude_string
 .Op Fl w Ar re_whitelist
+.Op Fl c Ar conf_file
 .Sh DESCRIPTION
 The
 .Nm
@@ -75,9 +76,13 @@ extended regular expression (explained in
 .Xr re_format 7 )
 will be accepted and no filtering operation will be done. This option can 
 be used more than once and all the regular expressions will be checked.
+.It Fl c Ar conf_file
+Path to the configuration file.
+Default:
+.Pa /etc/bogom.conf
 .El
 .Pp
-Default action is to add the
+Default policy is to add the
 .Em X-Bogosity
 header (Yes, No, Unsure) and deliver the mail. This can be changed with
 .Cm -R
@@ -119,6 +124,38 @@ your mc file:
 It assumes the default place for the communication socket.
 .Pp
 Rebuild your cf and install it. Send HUP signal to sendmail and you're done.
+.Sh CONFIGURATION FILE
+Configuration file supports following tokens:
+.Bd -literal
+ # line comment
+
+ policy (pass|reject|discard)
+ default: policy pass
+
+ verbose (0|1)
+ default: verbose 0
+
+ bogofilter "<path to bogofilter binary>"
+ default: bogofilter "/usr/local/bin/bogofilter"
+
+ training (0|1)
+ default: training 0
+
+ user "<username to run the milter>"
+ default: user "bogofilter"
+
+ connection "<type>:<location>"
+ default: connection "unix:/var/spool/bogofilter/milter.sock"
+
+ exclude_string "<subject exclude string>"
+ default: empty
+
+ re_envfrom "<case insensitive extended regular expression>"
+ default: empty
+.Ed
+.Pp
+Command line options take precedence over configuration file, except for 
+regex whitelists (in which simply the new elements are added).
 .Sh LOGGING
 .Nm
 sends messages to
@@ -133,6 +170,8 @@ By default only info and, when needed, err levels will be used. With
 .Cm -v
 option, extra information will be addressed with notice level plus the
 log facility provided in bofogilter.
+.Sh FILES
+/etc/bogom.conf
 .Sh SEE ALSO
 .Xr sendmail 8 ,
 .Xr bogofilter 1 ,
