@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.6 2005/01/02 17:53:05 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.7 2005/01/02 22:37:02 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -83,7 +83,7 @@ struct re_list
 		malloc(sizeof(struct re_list));\
 	x->n=NULL;
 
-static const char 	rcsid[]="$Id: milter.c,v 1.6 2005/01/02 17:53:05 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.7 2005/01/02 22:37:02 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -417,7 +417,7 @@ usage(const char *argv0)
 {
 	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-p pipe]\n"
 		"\t\t[-b bogo_path ] [ -x exclude_string ] "
- 		"[ -w re_whitelist ]\n\t\t[ -c conf_file ]\n", argv0);
+ 		"[ -c conf_file ]\n", argv0);
 
 	return;
 }
@@ -613,6 +613,9 @@ main(int argc, char *argv[])
 					return 1;
 				}
 				re->pat=optarg;
+				fprintf(stderr,
+					"-w option has been deprecated, please"
+					" use re_envfrom instead\n");
 				break;
 			case 'c':
 				conffile=optarg;
