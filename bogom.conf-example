@@ -1,5 +1,5 @@
 #
-# $Id: bogom.conf-example,v 1.3 2005/01/03 12:10:05 reidrac Exp reidrac $
+# $Id: bogom.conf-example,v 1.4 2005/01/22 12:38:29 reidrac Exp reidrac $
 #
 # Example of bogom configuration
 #
@@ -64,6 +64,14 @@
 #
 # re_envfrom "\.usebox\.net>$"
 # re_envfrom "@usebox\.net>$"
+#
+# default: empty
+
+#
+# re_envrcpt "<case insensitive extended re>"
+#
+# re_envrcpt "spamtrap@usebox\.net>$"
+# re_envrcpt "ilikespam@"
 #
 # default: empty
 
