@@ -1,4 +1,4 @@
-/* $Id: conf.c,v 1.5 2005/01/23 10:06:36 reidrac Exp reidrac $ */
+/* $Id: conf.c,v 1.6 2005/01/27 21:48:12 reidrac Exp reidrac $ */
 
 /*
 * conf.c, configuration reader and parser
@@ -40,7 +40,7 @@ static int parse_qstring(char *p);
 static int parse_bool(char *p);
 static char * parse_conf(struct conftoken *conf, char *p);
 
-static const char rcsid[]="$Id: conf.c,v 1.5 2005/01/23 10:06:36 reidrac Exp reidrac $";
+static const char rcsid[]="$Id: conf.c,v 1.6 2005/01/27 21:48:12 reidrac Exp reidrac $";
 
 /*
 * strncpy alike function that parses scaped quotes
@@ -48,7 +48,7 @@ static const char rcsid[]="$Id: conf.c,v 1.5 2005/01/23 10:06:36 reidrac Exp rei
 static char *
 pstrncpy(char *d, const char *s, size_t l)
 {
-	int i, j;
+	size_t i, j;
 
 	for(i=0, j=0; i<l && s[i]; i++, j++)
 	{
