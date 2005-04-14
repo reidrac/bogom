@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.23 2005/03/30 21:11:25 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.24 2005/04/04 09:00:51 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -33,6 +33,11 @@
 #include <syslog.h>
 #include <regex.h>
 #include <time.h>
+
+#ifdef __sun__
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
 
 #include "libmilter/mfapi.h"
 #include "conf.h"
@@ -72,6 +77,10 @@ sfsistat mlfi_close(SMFICTX *);
 void mlfi_clean(SMFICTX *);
 void usage(const char *);
 
+#ifdef __sun__
+int daemon(int, int);
+#endif
+
 struct smfiDesc smfilter=
 {
 	"bogom",	/* filter name */
@@ -102,7 +111,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.23 2005/03/30 21:11:25 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.24 2005/04/04 09:00:51 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -119,13 +128,52 @@ static struct re_list	*re_c=NULL;	/* re connection */
 static struct re_list	*re_f=NULL;	/* re envfrom */
 static struct re_list	*re_r=NULL;	/* re envrcpt */
 
+#ifdef __sun__
+int
+daemon(int nochdir, int noclose)
+{
+	int fd;
+
+	switch(fork())
+	{
+		case 0:
+			break;
+
+		case -1:
+			return -1;
+
+		default:
+			_exit(0);
+	}
+
+	if(setsid()==-1)
+		return -1;
+
+	if(!nochdir && chdir("/"))
+		return -1;
+
+	if(!noclose)
+	{
+		fd=open("/dev/null", O_RDWR, 0);
+		if(fd==-1)
+			return -1;
+
+		dup2(fd, fileno(stdin));
+		dup2(fd, fileno(stdout));
+		dup2(fd, fileno(stderr));
+	}
+
+	return 0;
+}
+#endif
+
 sfsistat 
 mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 {
 	struct mlfiPriv *priv;
 	struct re_list *tre;	/* temporal iterator */
 
-	const void *s_addr=NULL;
+	const void *mysaddr=NULL;
 	char host[INET6_ADDRSTRLEN];
 
 	switch(hostaddr->sa_family)
@@ -135,17 +183,17 @@ mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 			break;
 
 		case AF_INET:
-			s_addr=(const void *)&((struct sockaddr_in *)hostaddr)
+			mysaddr=(const void *)&((struct sockaddr_in *)hostaddr)
 				->sin_addr.s_addr;
 			break;
 
 		case AF_INET6:
-			s_addr=(const void *)&((struct sockaddr_in6 *)hostaddr)
+			mysaddr=(const void *)&((struct sockaddr_in6 *)hostaddr)
 				->sin6_addr;
 			break;
 	}
 
-	if(!inet_ntop(hostaddr->sa_family, s_addr, host, sizeof(host)))
+	if(!inet_ntop(hostaddr->sa_family, mysaddr, host, sizeof(host)))
 	{
 		syslog(LOG_ERR, "mlfi_connect: inet_ntop failed");
 		strcpy(host, "*");
@@ -592,7 +640,7 @@ mlfi_clean(SMFICTX *ctx)
 	struct mlfiPriv *priv;
 
 	if(debug)
-		syslog(LOG_DEBUG, "cleanning message...");
+		syslog(LOG_DEBUG, "cleaning message...");
 
 	priv=(struct mlfiPriv *)smfi_getpriv(ctx);
 
@@ -625,7 +673,7 @@ mlfi_clean(SMFICTX *ctx)
 	priv->eom=1;
 
 	if(debug)
-		syslog(LOG_DEBUG, "...cleanning done");
+		syslog(LOG_DEBUG, "...cleaning done");
 
 	return;
 }
