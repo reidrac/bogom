@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.24 2005/04/04 09:00:51 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.25 2005/04/14 05:54:04 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -111,7 +111,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.24 2005/04/04 09:00:51 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.25 2005/04/14 05:54:04 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -536,8 +536,8 @@ mlfi_eom(SMFICTX *ctx)
 
 			if(subj_tag && priv->subject)
 			{
-				tmp_subj=(char *)calloc(sizeof(subj_tag)+
-					sizeof(priv->subject)+2, sizeof(char));
+				tmp_subj=(char *)calloc(strlen(subj_tag)+
+					strlen(priv->subject)+2, sizeof(char));
 
 				if(!tmp_subj)
 					syslog(LOG_ERR, "Unable to get memory:"
