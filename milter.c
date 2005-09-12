@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.25 2005/04/14 05:54:04 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.26 2005/04/14 05:56:46 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -85,7 +85,8 @@ struct smfiDesc smfilter=
 {
 	"bogom",	/* filter name */
 	SMFI_VERSION,	/* version code -- do not change */
-	SMFIF_ADDHDRS | SMFIF_CHGHDRS,	/* flags -- add and modify headers */
+	SMFIF_ADDHDRS | SMFIF_CHGHDRS | /* flags -- add and modify headers */
+	SMFIF_ADDRCPT,	/* -- add rcpt */
 	mlfi_connect,	/* connection info filter */
 	NULL,		/* SMTP HELO command filter */
 	mlfi_envfrom,	/* envelope sender filter */
@@ -111,7 +112,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.25 2005/04/14 05:54:04 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.26 2005/04/14 05:56:46 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -121,6 +122,7 @@ static size_t		bodylimit=0;
 static const char 	*bogo="/usr/local/bin/bogofilter";
 static const char	*exclude=NULL;
 static const char	*subj_tag=NULL;
+static const char	*forward_spam=NULL;
 
 static char		*reject=NULL;
 
@@ -534,6 +536,14 @@ mlfi_eom(SMFICTX *ctx)
 			smfi_insheader(ctx, 0, "X-Bogosity",
 				"Yes, tests=bogofilter");
 
+			if(forward_spam)
+			{
+				if(smfi_addrcpt(ctx, (char *)forward_spam)
+					==MI_SUCCESS && debug)
+					syslog(LOG_DEBUG, "forward_spam rcpt "
+						"added: '%s'", forward_spam);	
+			}
+
 			if(subj_tag && priv->subject)
 			{
 				tmp_subj=(char *)calloc(strlen(subj_tag)+
@@ -684,7 +694,7 @@ usage(const char *argv0)
 	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-s conn]\n"
 		"\t\t[-b bogo_path ] [ -x exclude_string ] "
  		"[ -c conf_file ]\n\t\t[ -l body_limit ] [ -p pidfile ] "
-		"[ -d ]\n", argv0);
+		"[ -f forward_spam ] [ -d ]\n", argv0);
 
 	return;
 }
@@ -721,11 +731,12 @@ main(int argc, char *argv[])
  		{ "body_limit", REQ_STRING, NULL, 0, NULL },
  		{ "pidfile", REQ_QSTRING, NULL, 0, NULL },
  		{ "subject_tag", REQ_QSTRING, NULL, 0, NULL },
+ 		{ "forward_spam", REQ_QSTRING, NULL, 0, NULL },
  		{ NULL, 0, NULL, 0, NULL }
 	};
 
 	int opt;
-	const char *opts="hu:p:b:RDtvx:w:c:l:ds:";
+	const char *opts="hu:p:b:RDtvx:w:c:l:ds:f:";
 
 	struct passwd *pw=NULL;
 
@@ -785,6 +796,10 @@ main(int argc, char *argv[])
 
 			case 'p':
 				pidfile=optarg;
+				break;
+
+			case 'f':
+				forward_spam=optarg;
 				break;
 		}
 
@@ -992,6 +1007,9 @@ main(int argc, char *argv[])
 
  		if(conf[13].str)
  			subj_tag=conf[13].str;
+
+ 		if(conf[14].str)
+ 			forward_spam=conf[14].str;
  	}
 	else
 		return 1; /* error reading configuration */
