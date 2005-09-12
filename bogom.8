@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.17 2005/02/15 21:06:14 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.18 2005/04/04 09:01:57 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -34,6 +34,7 @@
 .Op Fl c Ar conf_file
 .Op Fl l Ar body_limit
 .Op Fl p Ar pidfile
+.Op Fl f Ar forward_spam
 .Op Fl d
 .Sh DESCRIPTION
 The
@@ -86,6 +87,9 @@ Path to the file to store the pid of the milter. The pidfile is created
 after the milter drops privileges and the user to run the milter
 must have write permission to the specified file. Default:
 .Pa /var/spool/bogofilter/bogom.pid
+.It Fl f Ar forward_spam
+Set a recipient to forward any message classified as spam. Read configuration
+file section for further details.
 .It Fl d
 Enable debug messages (implies verbose logging)
 .El
@@ -171,6 +175,9 @@ Configuration file supports following tokens:
  exclude_string "<subject exclude string>"
  default: empty
 
+ forward_spam "<rcpt>"
+ default: empty
+
  re_connection "<case insensitive extended re>"
  default: empty
 
@@ -186,6 +193,11 @@ Configuration takes precedence over command line.
 .Em subject_tag
 string will be prepend to message subject when it is identified as spam
 and policy is pass.
+.Pp
+.Em forward_spam
+recipient will receive a copy of any message classified as spam when policy
+is pass. Notice that the original destination recipients won't be modified
+and general RELAY restrictions will apply.
 .Pp
 The
 .Em re_*
