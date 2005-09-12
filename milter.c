@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.26 2005/04/14 05:56:46 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.27 2005/09/12 21:36:06 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -112,7 +112,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.26 2005/04/14 05:56:46 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.27 2005/09/12 21:36:06 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -539,9 +539,14 @@ mlfi_eom(SMFICTX *ctx)
 			if(forward_spam)
 			{
 				if(smfi_addrcpt(ctx, (char *)forward_spam)
-					==MI_SUCCESS && debug)
-					syslog(LOG_DEBUG, "forward_spam rcpt "
-						"added: '%s'", forward_spam);	
+					!=MI_SUCCESS)
+					syslog(LOG_ERR, "forward_spam failed:"
+						" '%s'", forward_spam);
+				else
+					if(debug)
+						syslog(LOG_DEBUG, 
+						"forward_spam rcpt added: "
+						"'%s'", forward_spam);	
 			}
 
 			if(subj_tag && priv->subject)
@@ -563,8 +568,14 @@ mlfi_eom(SMFICTX *ctx)
 						tmp_subj[998]=0;
 
 					if(smfi_chgheader(ctx, "Subject", 1,
-						tmp_subj)==MI_SUCCESS && debug)
-						syslog(LOG_DEBUG, "subject_tag"
+						tmp_subj)!=MI_SUCCESS)
+						syslog(LOG_ERR, "subject_tag"
+							"failed: '%s'",
+								tmp_subj);
+					else	
+						if(debug)
+							syslog(LOG_DEBUG, 
+							"subject_tag"
 							" added: '%s'", 
 								tmp_subj);
 					free(tmp_subj);
