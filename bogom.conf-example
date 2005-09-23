@@ -1,5 +1,5 @@
 #
-# $Id: bogom.conf-example,v 1.8 2005/04/04 09:01:57 reidrac Exp reidrac $
+# $Id: bogom.conf-example,v 1.9 2005/09/12 21:36:06 reidrac Exp reidrac $
 #
 # Example of bogom configuration
 #
@@ -78,6 +78,13 @@
 #
 # forward_spam "spammaster"
 # forward_spam "spam@other.domain.com"
+#
+# default: empty
+
+#
+# quarantine_mdir "<path to maildir directory>"
+#
+# quarantine_mdir "/var/spool/bogofilter/spam.mdir"
 #
 # default: empty
 
