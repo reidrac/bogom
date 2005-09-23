@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.18 2005/04/04 09:01:57 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.19 2005/09/12 21:36:06 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -35,6 +35,7 @@
 .Op Fl l Ar body_limit
 .Op Fl p Ar pidfile
 .Op Fl f Ar forward_spam
+.Op Fl q Ar quarantine_mdir
 .Op Fl d
 .Sh DESCRIPTION
 The
@@ -90,6 +91,11 @@ must have write permission to the specified file. Default:
 .It Fl f Ar forward_spam
 Set a recipient to forward any message classified as spam. Read configuration
 file section for further details.
+.It Fl q Ar quarantine_mdir
+Path to a directory to deliver a copy of any message classified as spam. The
+messages are stored in
+.Xr maildir 5
+format.
 .It Fl d
 Enable debug messages (implies verbose logging)
 .El
@@ -114,7 +120,12 @@ unprivileged user running the milter can be used.
 uses a temporal file to store each individual message and forks a new 
 process to scan it with bogofilter. This temporal file uses 
 .Pa /tmp
-directory, it's owned by the user running the milter and has 0600 mode.
+directory by default, it's owned by the user running the milter and has 
+0600 mode. When a directory is specified in
+.Em quarantine_mdir ,
+the
+.Pa tmp
+subdirectory in that maildir is used as temporal directory.
 .Pp
 The option
 .Cm -t
@@ -178,6 +189,9 @@ Configuration file supports following tokens:
  forward_spam "<rcpt>"
  default: empty
 
+ quarantine_mdir "<path to maildir directory>"
+ default: empty
+
  re_connection "<case insensitive extended re>"
  default: empty
 
@@ -194,10 +208,28 @@ Configuration takes precedence over command line.
 string will be prepend to message subject when it is identified as spam
 and policy is pass.
 .Pp
+.Em body_limit
+specifies the amount of bytes (K suffix for Kilobytes and M for Megabytes)
+of message body that will be passed to bogofilter to be processed. 
+This option should help busy servers but is incompatible with
+.Em quarantine_mdir
+feature.
+.Pp
 .Em forward_spam
 recipient will receive a copy of any message classified as spam when policy
 is pass. Notice that the original destination recipients won't be modified
 and general RELAY restrictions will apply.
+.Pp
+If a directory in
+.Em quarantine_mdir
+is specified, any message classified as spam will be delivered there in
+maildir format. Neither reject nor discard policy affect this delivery, but
+.Em body_limit
+option is ignored. When a message is delivered, necessary subdirectories
+are created (tmp and new only). Notice that tmp subdirectory in maildir is 
+used as temporal directory for
+.Nm
+process when this option is active.
 .Pp
 The
 .Em re_*
@@ -250,7 +282,8 @@ activity can be logged to a separate file with following lines in
 .Xr bogoutil 1 ,
 .Xr syslog.conf 5 ,
 .Xr syslogd 8 ,
-.Xr re_format 7
+.Xr re_format 7 ,
+.Xr maildir 5
 .Pp
 http://www.usebox.net/jjm/bogom/
 .Sh CAVEATS
