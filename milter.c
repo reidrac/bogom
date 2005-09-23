@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.27 2005/09/12 21:36:06 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.28 2005/09/12 21:46:43 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -20,6 +20,7 @@
 */
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -35,7 +36,6 @@
 #include <time.h>
 
 #ifdef __sun__
-#include <sys/stat.h>
 #include <fcntl.h>
 #endif
 
@@ -59,6 +59,7 @@
 struct mlfiPriv
 {
 	FILE *f;
+	char *fullpath;
 	char *filename;
 	char *subject;
 	int eom;
@@ -76,6 +77,8 @@ sfsistat mlfi_abort(SMFICTX *);
 sfsistat mlfi_close(SMFICTX *);
 void mlfi_clean(SMFICTX *);
 void usage(const char *);
+int to_maildir(char *, char *);
+char *hostname_tmp();
 
 #ifdef __sun__
 int daemon(int, int);
@@ -112,7 +115,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.27 2005/09/12 21:36:06 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.28 2005/09/12 21:46:43 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -123,6 +126,7 @@ static const char 	*bogo="/usr/local/bin/bogofilter";
 static const char	*exclude=NULL;
 static const char	*subj_tag=NULL;
 static const char	*forward_spam=NULL;
+static char		*quarantine_mdir=NULL;
 
 static char		*reject=NULL;
 
@@ -234,6 +238,7 @@ mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 		return SMFIS_TEMPFAIL;
 	}
 
+	priv->fullpath=NULL;
 	priv->filename=NULL;
 	priv->subject=NULL;
 	priv->f=NULL;
@@ -295,6 +300,7 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 {
 	struct mlfiPriv *priv;
 	int fd=-1;
+	char *tmp=NULL;
 
 	priv=(struct mlfiPriv *)smfi_getpriv(ctx);
 	if(!priv)
@@ -317,19 +323,47 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 
 	if(priv->eom)
 	{
-		priv->filename=strdup("/tmp/bogom-msg.XXXXXXXXXX");
-		if(!priv->filename)
+		/* use tmp/ from quarantine maildir if available */
+		if(quarantine_mdir)
+		{
+			tmp=hostname_tmp();
+			if(!tmp)
+			{
+				syslog(LOG_ERR, "Unable to get memory: %s",
+                                	strerror(errno));
+                        	return SMFIS_TEMPFAIL;
+			}
+
+			priv->fullpath=(char *)calloc(strlen(quarantine_mdir)
+				+strlen(tmp)+6, sizeof(char));
+		}
+		else
+			priv->fullpath=strdup("/tmp/bogom-msg.XXXXXXXXXX");
+
+		if(!priv->fullpath)
 		{
 			syslog(LOG_ERR, "Unable to get memory: %s",
 				strerror(errno));
+			if(tmp)
+				free(tmp);
 			return SMFIS_TEMPFAIL;
 		}
 
-		fd=mkstemp(priv->filename);
+		if(quarantine_mdir)
+		{
+			snprintf(priv->fullpath, strlen(quarantine_mdir)+
+				strlen(tmp)+6, "%s/tmp/%s", quarantine_mdir,
+					tmp);
+			priv->filename=priv->fullpath+strlen(quarantine_mdir)
+				+5;
+			free(tmp);
+		}
+
+		fd=mkstemp(priv->fullpath);
 		if(fd==-1)
 		{
-			syslog(LOG_ERR, "Unable to create tmp file in /tmp: %s",
-				strerror(errno));
+			syslog(LOG_ERR, "Unable to create tmp file in %s: %s",
+				priv->fullpath, strerror(errno));
 
 			mlfi_clean(ctx);
 			return SMFIS_TEMPFAIL;
@@ -338,8 +372,8 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 		priv->f=fdopen(fd, "w+");
 		if(!priv->f)
 		{
-			syslog(LOG_ERR, "Unable to create tmp file in /tmp: %s",
-				strerror(errno));
+			syslog(LOG_ERR, "Unable to create tmp file in %s: %s",
+				priv->fullpath, strerror(errno));
 
 			if(fd!=-1)
 				close(fd);
@@ -378,7 +412,7 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 	if(fprintf(priv->f, "%s: %s\n", headerf, headerv)==EOF)
 	{
 		syslog(LOG_ERR, "failed to write into %s: %s", 
-			priv->filename, strerror(errno));
+			priv->fullpath, strerror(errno));
 		mlfi_clean(ctx);
 		return SMFIS_TEMPFAIL;
 	}
@@ -404,7 +438,7 @@ mlfi_eoh(SMFICTX *ctx)
 	if(fprintf(priv->f, "\n")==EOF)
 	{
 		syslog(LOG_ERR, "failed to write into %s: %s", 
-			priv->filename, strerror(errno));
+			priv->fullpath, strerror(errno));
 		mlfi_clean(ctx);
 		return SMFIS_TEMPFAIL;
 	}
@@ -451,7 +485,7 @@ mlfi_body(SMFICTX *ctx, unsigned char *bodyp, size_t bodylen)
 		if(fwrite(bodyp, bodylen, 1, priv->f)!=1)
 		{
 			syslog(LOG_ERR, "failed to write into %s: %s", 
-				priv->filename, strerror(errno));
+				priv->fullpath, strerror(errno));
 			mlfi_clean(ctx);
 			return SMFIS_TEMPFAIL;
 		}
@@ -509,7 +543,7 @@ mlfi_eom(SMFICTX *ctx)
 			strcat(bogo_ops, "B");
 				
 			status=execl(bogo, "bogofilter", bogo_ops, 
-				priv->filename, (char *)0);
+				priv->fullpath, (char *)0);
 
 			syslog(LOG_ERR, "unable to execl bogofilter: %s", 
 				strerror(errno));
@@ -599,6 +633,24 @@ mlfi_eom(SMFICTX *ctx)
 			if(mode==SMFIS_REJECT && reject)
 				smfi_setreply(ctx, "554", "5.7.1", reject);
 
+			if(quarantine_mdir)
+			{
+				if(debug)
+					syslog(LOG_DEBUG, "copying message "
+						" to quarantine_mdir");
+
+				if(chdir(quarantine_mdir)==-1)
+					syslog(LOG_ERR, "failed to chdir to "
+						"quarantine_mdir: %s\n", 
+							strerror(errno));
+				else
+					if(to_maildir(priv->fullpath,
+						priv->filename)==-1)
+						syslog(LOG_ERR, "failed to"
+						" copy message to "
+						"quarantine_mdir");
+			}
+
 			mlfi_clean(ctx);
 			return mode;
 		case 1:
@@ -676,13 +728,13 @@ mlfi_clean(SMFICTX *ctx)
 		priv->f=NULL;
 	}
 
-	if(priv->filename)
+	if(priv->fullpath)
 	{
 		if(debug)
 			syslog(LOG_DEBUG, "removing tmp file");
-		unlink(priv->filename);
-		free(priv->filename);
-		priv->filename=NULL;
+		unlink(priv->fullpath);
+		free(priv->fullpath);
+		priv->fullpath=NULL;
 	}
 
 	if(priv->subject)
@@ -699,13 +751,87 @@ mlfi_clean(SMFICTX *ctx)
 	return;
 }
 
+char *
+hostname_tmp()
+{
+	char *p;
+	char myhostname[MAXHOSTNAMELEN+128];
+	struct timeval tp;
+
+	if(gettimeofday(&tp, NULL)==-1)
+		tp.tv_sec=time(NULL);
+
+	/* time + hostname to make a unique filename NFS friendly */
+	snprintf(myhostname, 117, "bogom_%lu.%lu.", tp.tv_sec, tp.tv_usec);
+
+	if(gethostname(myhostname+strlen(myhostname), MAXHOSTNAMELEN)==-1)
+	{
+		syslog(LOG_NOTICE, "failed to get my hostname");
+		strcpy(myhostname, "unknown_hostname");
+	}
+
+	p=myhostname;
+	while((p=strstr(p, "/")))
+		*p='\057';
+
+	p=myhostname;
+	while((p=strstr(p, ":")))
+		*p='\072';
+
+	strcat(myhostname, ".XXXXXXXXXX");
+
+	return strdup(myhostname);
+}
+
+int 
+to_maildir(char *origin, char *filename)
+{
+	char *p;
+	struct stat st;
+
+	/* caller must chdir to quarantine_mdir */
+
+	if(stat("new", &st)==-1 && errno==ENOENT)
+		if(mkdir("new", 0700)==-1)
+		{
+			syslog(LOG_ERR, "quarantine_mdir failed to "
+				"create new/: %s", strerror(errno));
+			return -1;
+		}
+
+	p=(char *)calloc(strlen(filename)+strlen(quarantine_mdir)+6, 
+		sizeof(char));
+	if(!p)
+	{
+		syslog(LOG_ERR, "quarantine_mdir failed to get memory: %s",
+			strerror(errno));
+		return -1;
+	}
+
+	snprintf(p, strlen(filename)+strlen(quarantine_mdir)+6, 
+		"%s/new/%s\n", quarantine_mdir, filename);
+
+ 	if(link(origin, p)==-1)
+	{
+		syslog(LOG_ERR, "quarantine_mdir failed to link file: %s",
+			strerror(errno));
+		free(p);
+		return -1;
+	}
+
+	free(p);
+
+	return 0;
+}
+
 void
 usage(const char *argv0)
 {
 	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-s conn]\n"
 		"\t\t[-b bogo_path ] [ -x exclude_string ] "
  		"[ -c conf_file ]\n\t\t[ -l body_limit ] [ -p pidfile ] "
-		"[ -f forward_spam ] [ -d ]\n", argv0);
+		"[ -f forward_spam ]\n"
+		"\t\t[ -q quarantine_mdir ] [ -d ]\n", argv0);
 
 	return;
 }
@@ -743,13 +869,15 @@ main(int argc, char *argv[])
  		{ "pidfile", REQ_QSTRING, NULL, 0, NULL },
  		{ "subject_tag", REQ_QSTRING, NULL, 0, NULL },
  		{ "forward_spam", REQ_QSTRING, NULL, 0, NULL },
+ 		{ "quarantine_mdir", REQ_QSTRING, NULL, 0, NULL },
  		{ NULL, 0, NULL, 0, NULL }
 	};
 
 	int opt;
-	const char *opts="hu:p:b:RDtvx:w:c:l:ds:f:";
+	const char *opts="hu:p:b:RDtvx:w:c:l:ds:f:q:";
 
 	struct passwd *pw=NULL;
+	struct stat st;
 
 	while((opt=getopt(argc, argv, opts))!=-1)
 		switch(opt)
@@ -811,6 +939,10 @@ main(int argc, char *argv[])
 
 			case 'f':
 				forward_spam=optarg;
+				break;
+
+			case 'q':
+				quarantine_mdir=optarg;
 				break;
 		}
 
@@ -1021,6 +1153,9 @@ main(int argc, char *argv[])
 
  		if(conf[14].str)
  			forward_spam=conf[14].str;
+
+ 		if(conf[15].str)
+ 			quarantine_mdir=conf[15].str;
  	}
 	else
 		return 1; /* error reading configuration */
@@ -1109,6 +1244,45 @@ main(int argc, char *argv[])
         }
 
 	syslog(LOG_INFO, "started %s", rcsid);
+
+	if(quarantine_mdir)
+	{
+		if(quarantine_mdir[strlen(quarantine_mdir)]=='/')
+			quarantine_mdir[strlen(quarantine_mdir)]=0;
+
+		if(quarantine_mdir[0]!='/')
+		{
+			syslog(LOG_ERR, "quarantine_mdir path must be"
+				" absolute");
+			return 1;
+		}
+
+		if(chdir(quarantine_mdir)==-1)
+		{
+			syslog(LOG_ERR, "failed to chdir to quarantine_mdir: "
+				"%s", strerror(errno));
+			return 1;
+		}
+
+		if(stat("tmp/", &st)==-1 && errno==ENOENT)
+		{
+			if(mkdir("tmp", 0700)==-1)
+			{
+				syslog(LOG_ERR, "quarantine_mdir failed to "
+					"create tmp/: %s", strerror(errno));
+				return 1;
+			}
+		}
+
+	}
+
+	if(quarantine_mdir && bodylimit)
+	{
+		syslog(LOG_ERR, "body_limit is incompatible with "
+		"quarantine_mdir and will be ignored");
+
+		bodylimit=0;
+	}
 
 	result=smfi_main();
 
