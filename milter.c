@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.28 2005/09/12 21:46:43 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.29 2005/09/23 15:48:14 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -115,7 +115,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.28 2005/09/12 21:46:43 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.29 2005/09/23 15:48:14 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -593,7 +593,9 @@ mlfi_eom(SMFICTX *ctx)
 						" %s", strerror(errno));
 				else
 				{
-					sprintf(tmp_subj, "%s %s", subj_tag,
+					snprintf(tmp_subj, strlen(subj_tag)+
+						strlen(priv->subject)+2, 
+						"%s %s", subj_tag, 
 						priv->subject);
 
 					/* truncate if needed and be nice 
