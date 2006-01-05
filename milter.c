@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.30 2005/11/06 17:43:18 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.31 2005/11/19 17:25:29 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -116,7 +116,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.30 2005/11/06 17:43:18 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.31 2005/11/19 17:25:29 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -278,7 +278,10 @@ mlfi_envfrom(SMFICTX *ctx, char **argv)
 sfsistat 
 mlfi_envrcpt(SMFICTX *ctx, char **argv)
 {
+	struct mlfiPriv *priv;
 	struct re_list *tre;	/* temporal iterator */
+	int fd=-1;
+	char *tmp=NULL;
 
 	if(debug)
 		syslog(LOG_DEBUG, "envrcpt %s", argv[0]);
@@ -293,34 +296,12 @@ mlfi_envrcpt(SMFICTX *ctx, char **argv)
 			return SMFIS_ACCEPT;
 		}
 
-	return SMFIS_CONTINUE;
-}
-
-sfsistat 
-mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
-{
-	struct mlfiPriv *priv;
-	int fd=-1;
-	char *tmp=NULL;
-
 	priv=(struct mlfiPriv *)smfi_getpriv(ctx);
 	if(!priv)
 	{
 		syslog(LOG_ERR, "on mlfi_header: smfi_getpriv");
 		return SMFIS_ACCEPT;
 	}
-
-	if(exclude && headerv)
-		if(!strcasecmp(headerf, "Subject"))
-			if(strstr(headerv, exclude))
-			{
-				if(verbose)
-					syslog(LOG_INFO, 
-						"exclude string found: '%s'", 
-						headerv);
-				mlfi_clean(ctx);
-				return SMFIS_ACCEPT;
-			}
 
 	if(priv->eom)
 	{
@@ -389,6 +370,33 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 		if(debug)
 			syslog(LOG_DEBUG, "message begin...");
 	}
+
+	return SMFIS_CONTINUE;
+}
+
+sfsistat 
+mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
+{
+	struct mlfiPriv *priv;
+
+	priv=(struct mlfiPriv *)smfi_getpriv(ctx);
+	if(!priv)
+	{
+		syslog(LOG_ERR, "on mlfi_header: smfi_getpriv");
+		return SMFIS_ACCEPT;
+	}
+
+	if(exclude && headerv)
+		if(!strcasecmp(headerf, "Subject"))
+			if(strstr(headerv, exclude))
+			{
+				if(verbose)
+					syslog(LOG_INFO, 
+						"exclude string found: '%s'", 
+						headerv);
+				mlfi_clean(ctx);
+				return SMFIS_ACCEPT;
+			}
 
 	if(debug)
 		syslog(LOG_DEBUG, "header %s [%s]", headerf, headerv);
