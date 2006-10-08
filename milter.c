@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.31 2005/11/19 17:25:29 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.32 2006/01/05 14:46:07 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -65,6 +65,7 @@ struct mlfiPriv
 	char *subject;
 	int eom;
 	size_t bodylen;
+	int old_headers;
 };
 
 sfsistat mlfi_connect(SMFICTX *, char *, _SOCK_ADDR *);
@@ -116,7 +117,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.31 2005/11/19 17:25:29 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.32 2006/01/05 14:46:07 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -244,6 +245,7 @@ mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 	priv->subject=NULL;
 	priv->f=NULL;
 	priv->eom=1;
+	priv->old_headers=0;
 
 	if(smfi_setpriv(ctx, priv)!=MI_SUCCESS)
 	{
@@ -401,6 +403,9 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 	if(debug)
 		syslog(LOG_DEBUG, "header %s [%s]", headerf, headerv);
 
+	if(headerv && !strcasecmp(headerf, "X-Bogosity"))
+		priv->old_headers++;
+
 	if(subj_tag && headerv)
 		if(!strcasecmp(headerf, "Subject"))
 		{
@@ -515,7 +520,7 @@ sfsistat
 mlfi_eom(SMFICTX *ctx)
 {
 	struct mlfiPriv *priv;
-	int status, pid;
+	int status, pid, i;
 	char bogo_ops[5]="-\0";
 	char *tmp_subj;
 
@@ -578,6 +583,8 @@ mlfi_eom(SMFICTX *ctx)
 		case 0:
 			smfi_insheader(ctx, 0, "X-Bogosity",
 				"Yes, tests=bogofilter");
+
+			priv->old_headers++;
 
 			if(forward_spam)
 			{
@@ -668,12 +675,17 @@ mlfi_eom(SMFICTX *ctx)
 			smfi_insheader(ctx, 0, "X-Bogosity",
 				"No, tests=bogofilter");
 
+			priv->old_headers++;
+
 			if(verbose)
 				syslog(LOG_NOTICE, "bogofilter reply: ham");
 			break;
 		case 2:
 			smfi_insheader(ctx, 0, "X-Bogosity",
 				"Unsure, tests=bogofilter");
+
+			priv->old_headers++;
+
 			if(verbose)
 				syslog(LOG_NOTICE, "bogofilter reply: unsure");
 			break;
@@ -681,6 +693,14 @@ mlfi_eom(SMFICTX *ctx)
 			syslog(LOG_ERR, "bogofilter reply is unknown");
 			break;
 	}
+
+	if(priv->old_headers>1)
+		for(i=2, priv->old_headers++;i<priv->old_headers+1;i++)
+		{
+			smfi_chgheader(ctx, "X-Bogosity", i, NULL);
+			if(debug)
+				syslog(LOG_DEBUG, "previous header removed");
+		}
 
 	mlfi_clean(ctx);
 	return SMFIS_CONTINUE;
@@ -755,6 +775,7 @@ mlfi_clean(SMFICTX *ctx)
 	}
 
 	priv->eom=1;
+	priv->old_headers=0;
 
 	if(debug)
 		syslog(LOG_DEBUG, "...cleaning done");
