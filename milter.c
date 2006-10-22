@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.32 2006/01/05 14:46:07 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.33 2006/10/08 17:54:32 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -117,12 +117,13 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.32 2006/01/05 14:46:07 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.33 2006/10/08 17:54:32 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
 static int		verbose=0;
 static int		debug=0;
+static int		spamicity=0;
 static size_t		bodylimit=0;
 static const char 	*bogo="/usr/local/bin/bogofilter";
 static const char	*exclude=NULL;
@@ -520,9 +521,11 @@ sfsistat
 mlfi_eom(SMFICTX *ctx)
 {
 	struct mlfiPriv *priv;
-	int status, pid, i;
-	char bogo_ops[5]="-\0";
+	int status, i;
+	char *bogocl, header[64];
+	float spamicity_val;
 	char *tmp_subj;
+	FILE *proc;
 
 	if(debug)
 		syslog(LOG_DEBUG, "...end of message");
@@ -537,34 +540,50 @@ mlfi_eom(SMFICTX *ctx)
 	fclose(priv->f);
 	priv->f=NULL;
 
-	pid=fork();
-
-	if(pid==-1)
+	bogocl=(char *)malloc(strlen(bogo)+strlen(priv->fullpath)+16);
+	if(!bogocl)
 	{
-		syslog(LOG_ERR, "unable to fork: %s", strerror(errno));
+		syslog(LOG_ERR, "on mlfi_eom: %s", strerror(errno));
 		mlfi_clean(ctx);
-		return SMFIS_ACCEPT;
+		return SMFIS_CONTINUE;
 	}
-	else 
-		if(pid==0)
-		{
-			if(train)
-				strcat(bogo_ops, "u");
 
-			if(verbose)
-				strcat(bogo_ops, "l");
+	sprintf(bogocl, "%s -", bogo);
 
-			strcat(bogo_ops, "B");
-				
-			status=execl(bogo, "bogofilter", bogo_ops, 
-				priv->fullpath, (char *)0);
+	if(train)
+		strcat(bogocl, "u");
 
-			syslog(LOG_ERR, "unable to execl bogofilter: %s", 
-				strerror(errno));
-			exit(-1);
-		}
+	if(verbose)
+		strcat(bogocl, "l");
 
-	waitpid(pid, &status, 0);
+	if(spamicity)
+		strcat(bogocl, "TT");
+
+	strcat(bogocl, "B ");
+	strcat(bogocl, priv->fullpath);
+
+	proc=popen(bogocl, "r");
+	if(!proc)
+	{
+		syslog(LOG_ERR, "failed to exec bogofilter: %s",
+			strerror(errno));
+		free(bogocl);
+		mlfi_clean(ctx);
+		return SMFIS_CONTINUE;
+	}
+	free(bogocl);
+
+	if(spamicity)
+	{
+		/* FIXME: spaces in the path will cause trouble */
+		fscanf(proc, "%*[^ ] %f\n", &spamicity_val);
+
+		if(debug)
+			syslog(LOG_DEBUG, "spamicity value: %f",
+				spamicity_val);
+	}
+
+	status=pclose(proc);
 
 	if(!WIFEXITED(status))
 	{
@@ -581,8 +600,12 @@ mlfi_eom(SMFICTX *ctx)
 			mlfi_clean(ctx);
 			return SMFIS_CONTINUE;
 		case 0:
-			smfi_insheader(ctx, 0, "X-Bogosity",
-				"Yes, tests=bogofilter");
+			if(spamicity)
+				snprintf(header, 64, "Spam, spamicity=%.6f",
+					spamicity_val);	
+			else
+				strcpy(header, "Yes, tests=bogofilter");
+			smfi_insheader(ctx, 0, "X-Bogosity", header);
 
 			priv->old_headers++;
 
@@ -655,7 +678,7 @@ mlfi_eom(SMFICTX *ctx)
 			{
 				if(debug)
 					syslog(LOG_DEBUG, "copying message "
-						" to quarantine_mdir");
+						"to quarantine_mdir");
 
 				if(chdir(quarantine_mdir)==-1)
 					syslog(LOG_ERR, "failed to chdir to "
@@ -672,8 +695,12 @@ mlfi_eom(SMFICTX *ctx)
 			mlfi_clean(ctx);
 			return mode;
 		case 1:
-			smfi_insheader(ctx, 0, "X-Bogosity",
-				"No, tests=bogofilter");
+			if(spamicity)
+				snprintf(header, 64, "Ham, spamicity=%.6f",
+					spamicity_val);	
+			else
+				strcpy(header, "No, tests=bogofilter");
+			smfi_insheader(ctx, 0, "X-Bogosity", header);
 
 			priv->old_headers++;
 
@@ -681,8 +708,12 @@ mlfi_eom(SMFICTX *ctx)
 				syslog(LOG_NOTICE, "bogofilter reply: ham");
 			break;
 		case 2:
-			smfi_insheader(ctx, 0, "X-Bogosity",
-				"Unsure, tests=bogofilter");
+			if(spamicity)
+				snprintf(header, 64, "Unsure, spamicity=%.6f",
+					spamicity_val);	
+			else
+				strcpy(header, "Unsure, tests=bogofilter");
+			smfi_insheader(ctx, 0, "X-Bogosity", header);
 
 			priv->old_headers++;
 
@@ -860,10 +891,10 @@ void
 usage(const char *argv0)
 {
 	fprintf(stderr, "usage: %s\t[-R | -D] [-t] [-v] [-u user] [-s conn]\n"
-		"\t\t[-b bogo_path ] [ -x exclude_string ] "
- 		"[ -c conf_file ]\n\t\t[ -l body_limit ] [ -p pidfile ] "
-		"[ -f forward_spam ]\n"
-		"\t\t[ -q quarantine_mdir ] [ -d ]\n", argv0);
+		"\t\t[-b bogo_path ] [-x exclude_string] "
+ 		"[-c conf_file]\n\t\t[-l body_limit] [-p pidfile] "
+		"[-f forward_spam]\n"
+		"\t\t[-q quarantine_mdir] [-S] [-d]\n", argv0);
 
 	return;
 }
@@ -902,11 +933,12 @@ main(int argc, char *argv[])
  		{ "subject_tag", REQ_QSTRING, NULL, 0, NULL },
  		{ "forward_spam", REQ_QSTRING, NULL, 0, NULL },
  		{ "quarantine_mdir", REQ_QSTRING, NULL, 0, NULL },
+ 		{ "spamicity_header", REQ_BOOL, NULL, -1, NULL },
  		{ NULL, 0, NULL, 0, NULL }
 	};
 
 	int opt;
-	const char *opts="hu:p:b:RDtvx:w:c:l:ds:f:q:";
+	const char *opts="hu:p:b:RDtvx:w:c:l:ds:f:q:S";
 
 	struct passwd *pw=NULL;
 	struct stat st;
@@ -975,6 +1007,10 @@ main(int argc, char *argv[])
 
 			case 'q':
 				quarantine_mdir=optarg;
+				break;
+
+			case 'S':
+				spamicity=1;
 				break;
 		}
 
@@ -1188,6 +1224,9 @@ main(int argc, char *argv[])
 
  		if(conf[15].str)
  			quarantine_mdir=conf[15].str;
+
+ 		if(conf[16].bool!=-1)
+ 			spamicity=conf[16].bool;
  	}
 	else
 		return 1; /* error reading configuration */
