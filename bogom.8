@@ -1,4 +1,4 @@
-.\" $Id: bogom.8,v 1.19 2005/09/12 21:36:06 reidrac Exp reidrac $
+.\" $Id: bogom.8,v 1.20 2005/09/23 15:48:14 reidrac Exp reidrac $
 .\"
 .\" bogom, simple sendmail milter to interface bogofilter
 .\" Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net>
@@ -27,6 +27,7 @@
 .Op Fl R | Fl D
 .Op Fl t
 .Op Fl v
+.Op Fl S
 .Op Fl u Ar user
 .Op Fl s Ar conn
 .Op Fl b Ar bogo_path
@@ -59,6 +60,8 @@ Discard mail classified as spam
 Train bogofilter with the mail classified as spam/ham
 .It Fl v
 Verbose logging
+.It Fl S
+Use spamicity header. Read configuration file section for further details.
 .It Fl u Ar user
 User to run the milter.
 Default: bogofilter 
@@ -165,6 +168,9 @@ Configuration file supports following tokens:
  verbose (0|1)
  default: verbose 0
 
+ spamicity_header (0|1)
+ default: spamicity_header 0
+
  bogofilter "<path to bogofilter binary>"
  default: bogofilter "/usr/local/bin/bogofilter"
 
@@ -203,6 +209,14 @@ Configuration file supports following tokens:
 .Ed
 .Pp
 Configuration takes precedence over command line. 
+.Pp
+By default 
+.Em X-Bogosity
+header will use 'Yes, tests=bogofilter', 'No, tests=bogofilter' and 'Unsure, 
+tests=bogofilter'. With
+.Em spamicity_header
+activated, the classification of 'Ham', 'Spam' or 'Unsure' plus the value 
+of spamicity will be used to tag the messages.
 .Pp
 .Em subject_tag
 string will be prepend to message subject when it is identified as spam
@@ -247,6 +261,7 @@ be used more than once and all the regular expressions will be checked.
 .Pp
 Quoted strings can use single and double quotes, using backslash to escape both
 characters.
+.
 .Sh LOGGING
 .Nm
 sends messages to
