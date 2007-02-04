@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.33 2006/10/08 17:54:32 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.34 2006/10/22 10:35:26 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -117,7 +117,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.33 2006/10/08 17:54:32 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.34 2006/10/22 10:35:26 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -576,11 +576,16 @@ mlfi_eom(SMFICTX *ctx)
 	if(spamicity)
 	{
 		/* FIXME: spaces in the path will cause trouble */
-		fscanf(proc, "%*[^ ] %f\n", &spamicity_val);
-
-		if(debug)
-			syslog(LOG_DEBUG, "spamicity value: %f",
-				spamicity_val);
+		if(fscanf(proc, "%*[^ ] %f\n", &spamicity_val)!=1)
+		{
+			syslog(LOG_ERR, "failed to get bogofilter spamicity "
+				"value");
+			spamicity_val=-1;
+		}
+		else
+			if(debug)
+				syslog(LOG_DEBUG, "spamicity value: %f",
+					spamicity_val);
 	}
 
 	status=pclose(proc);
@@ -600,7 +605,7 @@ mlfi_eom(SMFICTX *ctx)
 			mlfi_clean(ctx);
 			return SMFIS_CONTINUE;
 		case 0:
-			if(spamicity)
+			if(spamicity && spamicity_val!=-1)
 				snprintf(header, 64, "Spam, spamicity=%.6f",
 					spamicity_val);	
 			else
@@ -695,7 +700,7 @@ mlfi_eom(SMFICTX *ctx)
 			mlfi_clean(ctx);
 			return mode;
 		case 1:
-			if(spamicity)
+			if(spamicity && spamicity_val!=-1)
 				snprintf(header, 64, "Ham, spamicity=%.6f",
 					spamicity_val);	
 			else
@@ -708,7 +713,7 @@ mlfi_eom(SMFICTX *ctx)
 				syslog(LOG_NOTICE, "bogofilter reply: ham");
 			break;
 		case 2:
-			if(spamicity)
+			if(spamicity && spamicity_val!=-1)
 				snprintf(header, 64, "Unsure, spamicity=%.6f",
 					spamicity_val);	
 			else
