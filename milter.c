@@ -1,8 +1,8 @@
-/* $Id: milter.c,v 1.34 2006/10/22 10:35:26 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.35 2007/02/04 15:14:35 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
-* Copyright (C) 2004, 2005 Juan J. Martinez <jjm*at*usebox*dot*net> 
+* Copyright (C) 2004-2007 Juan J. Martinez <jjm*at*usebox*dot*net> 
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License Version 2 as
@@ -117,7 +117,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.34 2006/10/22 10:35:26 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.35 2007/02/04 15:14:35 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
