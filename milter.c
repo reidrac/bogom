@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.35 2007/02/04 15:14:35 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.36 2007/02/08 15:35:02 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -117,7 +117,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.35 2007/02/04 15:14:35 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.36 2007/02/08 15:35:02 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -650,7 +650,7 @@ mlfi_eom(SMFICTX *ctx)
 					if(smfi_chgheader(ctx, "Subject", 1,
 						tmp_subj)!=MI_SUCCESS)
 						syslog(LOG_ERR, "subject_tag"
-							"failed: '%s'",
+							" failed: '%s'",
 								tmp_subj);
 					else	
 						if(debug)
