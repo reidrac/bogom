@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.36 2007/02/08 15:35:02 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.37 2007/02/28 08:32:59 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -117,7 +117,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.36 2007/02/08 15:35:02 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.37 2007/02/28 08:32:59 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -354,7 +354,11 @@ mlfi_envrcpt(SMFICTX *ctx, char **argv)
 			return SMFIS_TEMPFAIL;
 		}
 
+#ifdef __sun__
+		priv->f=fdopen(fd, "w+F");
+#else
 		priv->f=fdopen(fd, "w+");
+#endif
 		if(!priv->f)
 		{
 			syslog(LOG_ERR, "Unable to create tmp file in %s: %s",
@@ -562,7 +566,11 @@ mlfi_eom(SMFICTX *ctx)
 	strcat(bogocl, "B ");
 	strcat(bogocl, priv->fullpath);
 
+#ifdef __sun__
+	proc=popen(bogocl, "rF");
+#else
 	proc=popen(bogocl, "r");
+#endif
 	if(!proc)
 	{
 		syslog(LOG_ERR, "failed to exec bogofilter: %s",
