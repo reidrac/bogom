@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.38 2007/11/24 09:22:58 reidrac Exp $ */
+/* $Id: milter.c,v 1.39 2008/01/18 12:49:53 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -118,7 +118,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.38 2007/11/24 09:22:58 reidrac Exp $";
+static const char 	rcsid[]="$Id: milter.c,v 1.39 2008/01/18 12:49:53 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -186,28 +186,33 @@ mlfi_connect(SMFICTX *ctx, char *hostname, _SOCK_ADDR *hostaddr)
 	const void *mysaddr=NULL;
 	char host[INET6_ADDRSTRLEN];
 
-	switch(hostaddr->sa_family)
+	if(hostaddr)
 	{
-		default:
-			syslog(LOG_ERR, "mlfi_connet: unsupported sa_family");
-			break;
+		switch(hostaddr->sa_family)
+		{
+			default:
+				syslog(LOG_ERR, "mlfi_connet: unsupported sa_family");
+				break;
 
-		case AF_INET:
-			mysaddr=(const void *)&((struct sockaddr_in *)hostaddr)
-				->sin_addr.s_addr;
-			break;
+			case AF_INET:
+				mysaddr=(const void *)&((struct sockaddr_in *)hostaddr)
+					->sin_addr.s_addr;
+				break;
 
-		case AF_INET6:
-			mysaddr=(const void *)&((struct sockaddr_in6 *)hostaddr)
-				->sin6_addr;
-			break;
+			case AF_INET6:
+				mysaddr=(const void *)&((struct sockaddr_in6 *)hostaddr)
+					->sin6_addr;
+				break;
+		}
+
+		if(!inet_ntop(hostaddr->sa_family, mysaddr, host, sizeof(host)))
+		{
+			syslog(LOG_ERR, "mlfi_connect: inet_ntop failed");
+			strcpy(host, "*");
+		}
 	}
-
-	if(!inet_ntop(hostaddr->sa_family, mysaddr, host, sizeof(host)))
-	{
-		syslog(LOG_ERR, "mlfi_connect: inet_ntop failed");
+	else
 		strcpy(host, "*");
-	}
 
 	if(debug)
 		syslog(LOG_DEBUG, "connection from %s [ %s ]", hostname, host);
