@@ -1,0 +1,107 @@
+bogom - simple sendmail milter to interface bogofilter
+Copyright (C) 2004-2007 Juan J. Martinez <jjm@usebox.net>
+
+
+Required
+--------
+
+This milter requires libmiter API for sendmail 8.13.x or later.
+Installing bogofilter is a good idea also.
+
+Bogom has been developed and tested with the following:
+
+	sendmail 8.13.0 and 8.14.1
+	bogofilter 0.92.8 (with BerkeleyDB 4.2.52)
+
+
+Build and Install
+-----------------
+
+This milter has been developed in OpenBSD, so you may need to tweak the
+Makefile in order to compile it in other systems.
+
+Check README.* files for specific notes.
+
+On most Linux and BSD based systems, simply try:
+
+$ make
+$ su
+# make install
+
+Bogom has been packaged for FreeBSD (mail/milter-bogom) and non officially for
+some Linux distributions.
+
+IMPORTANT: since 1.8.1+ the bogom binary is installed into $(PREFIX)/libexec,
+           so be sure to remove $(PREFIX)/sbin/bogom from any previous
+           installation.
+
+
+Unprivileged user
+-----------------
+
+When root starts bogom, the program drops its privileges to another user. It's
+a good idea you create a new user to run the milter. By default bogofilter user
+is expected.
+
+# mkdir /var/spool/bogofilter
+
+Configure bogofilter with:
+
+bogofilter_dir=/var/spool/bogofilter
+
+... and create your intial words database. 
+
+After that, setup the environment with:
+
+# chown -R bogofilter:bogofilter /var/spool/bogofilter
+# chmod 700 /var/spool/bogofilter
+# chmod 600 /var/spool/bogofilter/wordlist.db
+
+
+Custom installation step by step
+--------------------------------
+
+bogom provides some defaults, but don't have to stick into them. 
+
+Here follows a 'step by step' quickstart to configure bogom and bogofilter.
+
++ Install bogofilter
++ Install bogom
++ Create the '_bogom' user and group
++ Create the directories and apply permissions:
+
+# mkdir -p /var/run/bogom && chown _bogom:_bogom /var/run/bogom
+# mkdir -p /var/db/bogofilter && chown _bogom:_bogom /var/db/bogofilter
+
++ Copy the example bogofilter.cf file into /etc and edit it:
+
+bogofilter_dir=/var/db/bogofilter
+
++ Setup bogofilter database. About 500 messages of spam/ham will be nice:
+
+# su _bogom -c "bogofilter -s < spam.mbox"
+# su _bogom -c "bogofilter -n < ham.mbox"
+
+(use su with -m option if _bogom user doesn't have shell account)
+
++ Install the example conf file at /etc/bogom.conf and edit it. At least
+you should set up:
+
+user "_bogom"
+pidfile "/var/run/bogom/bogom.pid"
+connection "unix:/var/run/bogom/milter.sock"
+
++ Add to your sendmail mc file:
+
+INPUT_MAIL_FILTER(`bogom',\
+`S=unix:/var/run/bogom/milter.sock, T=S:30s;R:1m')
+
+(rebuild and install the cf file)
+
++ Add bogom to your rc or init.d scripts
++ Restart sendmail
++ Exec bogom or reboot the system
+
+
+* EOF *
+

@@ -1,0 +1,37 @@
+Solaris notes
+-------------
+
+The information in README applies, so read it too. 
+
+Tested with:
+
+	bogom 1.8.2
+	Solaris 10
+	gcc 3.4.3
+	Sendmail 8.13.3+Sun
+
+Build command:
+
+	$ gmake CC=gcc LIBS="-lmilter -lpthread -lsocket -lnsl"
+
+Caveats:
+
+	Man page is in BSD man pages' format and needs mdoc macros
+
+About file descriptor limit:
+
+	This is a problem related to 23-bit applications running on
+        Solaris, that has been fixed on Solaris 10.
+
+	There have been reports of this issue with the milter under 
+	high load and several threads running. The milter was built
+	with Sun Strudio 12.
+
+	bogom 1.9.1 and later have a fix, but this hasn't been tested
+	deeply.
+
+	Further information:
+	http://developers.sun.com/solaris/articles/stdio_256.html
+
+* EOF *
+

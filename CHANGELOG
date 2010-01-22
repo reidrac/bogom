@@ -1,0 +1,249 @@
+2008-06-25  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: FIX: hostaddr may be NULL if not supported by current version of milter or if the SMTP connection is made via stdin, noticed using milter with postfix - Thanks to Victor Balada Diaz
+
+2008-01-18  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c:
+	fix: added an include to avoid a warning while compiling under Linux
+
+=== release 1.9.1
+
+2007-11-24  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c:
+	portability: extra flag in some stdio functions to avoid file descriptor limit issue on Solaris 10, thanks to Sergey Shapovalov
+
+2007-10-01  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* conf.c:
+	fix: error reading configuration when the last token was at EOF, thanks to Mikel Ward for the report
+
+2007-02-28  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: Fix: space missing in a log entry.
+
+2007-02-08  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8, conf.c, conf.h, milter.c: copyright year
+
+2007-02-04  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: Error handling while reading bogofilter spamicity response.
+
+2006-10-22  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8, bogom.conf-example, milter.c:
+	smpamicity support for the X-Bogosity header
+
+2006-10-08  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: Avoid multiple X-Bogosity headers.
+
+2006-01-05  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c:
+	fix: xxfi_header is called *zero* or more times (check http://www.usebox.net/jjm/bogom/errata/bogom-errata-2006-1.txt)
+
+2005-11-19  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: fix: include changes to support MAXHOSTNAMELEN constant
+
+2005-11-13  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* conf.c: Code cleanning.
+
+2005-11-06  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: sprintf to snprintf
+
+2005-09-23  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8, bogom.conf-example, milter.c:
+	Added quarantine_mdir feature (-q option)
+
+2005-09-12  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: Better logging for forward_spam and subj_tag.
+
+	* bogom.8, bogom.conf-example, milter.c:
+	Added forward_spam feature (-f option)
+
+2005-04-14  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c:
+	fix: wrong size on calloc, thanks to Jason M. for his feedback
+
+	* milter.c: fixes for solaris compatibility
+
+2005-04-04  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8, bogom.conf-example, milter.c:
+	new configuration option 'subject_tag'
+
+2005-03-30  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: ifndef for default username, it makes porting easier
+
+2005-02-16  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* conf.c: fix: missing conf file is not an error
+
+2005-02-15  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.conf-example: pidfile added
+
+	* bogom.8, milter.c: option changes: '-p pipe' becomes '-s conn' and
+	'-p pidfile' has been added (plus pidfile conf token)
+
+2005-02-09  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: setup time to timezone before openlog
+
+2005-02-07  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c:
+	fix: the order seteuid followed by setuid returns 0 / -1 under NetBSD
+	swaping those commands (setuid and later seteuid) rocks and seems to not
+	matter under OpenBSD - thanks to Heron Gallegos
+
+2005-02-04  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8: seems openbsd doesn't support !prog1,prog2 on syslog.conf
+
+2005-02-02  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* conf.c: fix: type size_t to int
+
+2005-02-01  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c:
+	fix: memory leak in conf reading routines, thanks to Dariusz Kulinski
+
+2005-01-31  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8: some fixes
+
+2005-01-29  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: fix: misstyped word
+
+2005-01-28  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8: -d option added and syslog.conf tips
+	little rewrite of some parts
+
+	* milter.c: -d option added and better debug messages
+	fix: -l option missed on getopt
+
+2005-01-27  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.conf-example, bogom.8, milter.c: added body_limit option
+
+	* conf.c: use isspace instead custom is_blank
+
+2005-01-26  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c:
+	added mlfi_abort to handle message abort on multi-message connections
+
+	* milter.c: fix: return 1 on error reading conf
+
+2005-01-25  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c:
+	re_envrcpt added (thanks to Dariusz Kulinski for his feedback)
+	fix: exit after configuration error
+	and little code clean
+
+	* bogom.8: re_envrcpt added
+
+	* bogom.conf-example: re_envrcpt example added
+
+2005-01-23  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c:
+	fix: smfi_getpriv may return NULL on mlfi_close due re_connection and
+	that should not be logged as error
+
+	* conf.c, conf.h: year on copyright line
+
+2005-01-22  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.conf-example: re_connection added
+
+	* milter.c, bogom.8:
+	-w option removed, re_connection added, year on copyright line
+
+2005-01-10  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c, conf.h, conf.c: Macro fixes and little code clean.
+
+2005-01-09  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* conf.c: Added missing rcsid
+
+2005-01-08  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* conf.c: fix: backslash escaped quotes now works (both \" and \')
+	Quoted string now can use single quotes also
+
+	* milter.c: fix: configuration takes precedence over command line
+
+	* bogom.8: fix: configuration takes precedence over command line
+	fix: backslash escaped quotes now works (both \" and \')
+	Quoted string now can use single quotes also
+
+2005-01-04  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c, bogom.8:
+	-w option deprecated (now configuration file must be used).
+
+2005-01-03  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.conf-example: fix: typo on exclude_string examples.
+
+2005-01-02  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.conf-example, bogom.8, milter.c:
+	Configurable text for the SMTP reject reply.
+
+	* bogom.8: Added -c conf_file option.
+	Configuration file description.
+
+	* milter.c: Added -c conf_file option.
+	Added configuration file support.
+
+	* conf.h, conf.c, bogom.conf-example: New file.
+
+2004-12-31  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* milter.c: fix: whitelist list processing
+
+2004-12-29  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8: fix: D1 macros
+
+	* bogom.8: -w re_whitelist option added
+
+	* milter.c: -w re_whitelist option added
+	Define a white list using regular expressions vs the sender address.
+
+	* milter.c: Removed unneeded includes
+
+2004-12-28  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8: Added sendmail setup information.
+
+	* bogom.8: Better description of logging.
+
+2004-12-27  Juan J. Martínez  <reidrac@blackshell.usebox.net>
+
+	* bogom.8: -x exclude_string added
+
+	* milter.c: -x exclude_string added
+	If this string is found in the Subject of a message, it will be
+	automatically accepted.
+
+	* bogom.8, milter.c: New file.
+

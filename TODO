@@ -1,0 +1,3 @@
+* reload configuration on SIGHUP
+* 2nd parameter to re_* lists with accept, pass, reject or discard
+

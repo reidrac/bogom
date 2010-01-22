@@ -1,4 +1,4 @@
-/* $Id: milter.c,v 1.39 2008/01/18 12:49:53 reidrac Exp reidrac $ */
+/* $Id: milter.c,v 1.40 2008/06/25 21:41:42 reidrac Exp reidrac $ */
 
 /*
 * bogom, simple sendmail milter to interface bogofilter
@@ -118,7 +118,7 @@ struct re_list
 		x->n=NULL;\
 	} while(0)
 
-static const char 	rcsid[]="$Id: milter.c,v 1.39 2008/01/18 12:49:53 reidrac Exp reidrac $";
+static const char 	rcsid[]="$Id: milter.c,v 1.40 2008/06/25 21:41:42 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;

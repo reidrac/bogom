@@ -1,4 +1,4 @@
-/* $Id: conf.h,v 1.3 2005/01/23 10:06:36 reidrac Exp reidrac $ */
+/* $Id: conf.h,v 1.4 2007/02/08 15:35:02 reidrac Exp reidrac $ */
 
 /*
 * conf.h, configuration reader and parser include
