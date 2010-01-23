@@ -1,5 +1,3 @@
-/* $Id: milter.c,v 1.40 2008/06/25 21:41:42 reidrac Exp reidrac $ */
-
 /*
 * bogom, simple sendmail milter to interface bogofilter
 * Copyright (C) 2004-2007 Juan J. Martinez <jjm*at*usebox*dot*net> 
@@ -117,8 +115,6 @@ struct re_list
 			malloc(sizeof(struct re_list));\
 		x->n=NULL;\
 	} while(0)
-
-static const char 	rcsid[]="$Id: milter.c,v 1.40 2008/06/25 21:41:42 reidrac Exp reidrac $";
 
 static int		mode=SMFIS_CONTINUE;
 static int		train=0;
@@ -1333,7 +1329,7 @@ main(int argc, char *argv[])
 		return 1;
         }
 
-	syslog(LOG_INFO, "started %s", rcsid);
+	syslog(LOG_INFO, "started");
 
 	if(quarantine_mdir)
 	{

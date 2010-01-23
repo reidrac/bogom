@@ -1,5 +1,3 @@
-/* $Id: conf.h,v 1.4 2007/02/08 15:35:02 reidrac Exp reidrac $ */
-
 /*
 * conf.h, configuration reader and parser include
 * Copyright (C) 2004-2007 Juan J. Martinez <jjm*at*usebox*dot*net>
